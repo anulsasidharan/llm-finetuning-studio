@@ -12,8 +12,8 @@
 ## CURRENT PHASE
 - Phase: 1 — Infrastructure & Skeleton
 - Active Week: 1
-- Last completed task: (update after each session)
-- Next task: (update after each session)
+- Last completed task: PHASE1-WEEK1-001 — Project Infrastructure Setup (2026-06-15)
+- Next task: PHASE1-WEEK1-002 — Makefile verification + README.md
 
 ## GIT WORKFLOW
 - main branch:     production-ready only — never commit directly
@@ -103,4 +103,4 @@ Payload type fields: metrics_update | status_change
 ## SESSION LOG (append after each session)
 | Date | What was done | Files changed | Next task |
 |------|--------------|---------------|-----------|
-| YYYY-MM-DD | Initial setup | - | Week 1 checklist |
+| 2026-06-15 | PHASE1-WEEK1-001: Full project infrastructure setup — 62 dirs, all Docker services, Next.js 14 + shadcn, FastAPI + uv, training_engine bootstrap, health endpoint confirmed | docker-compose.yml, all Dockerfiles, .env.example, .gitignore, Makefile, apps/backend/main.py, core/config.py, alembic.ini, start.sh, 79 files committed | PHASE1-WEEK1-002: Makefile verification + README.md |

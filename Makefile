@@ -38,9 +38,9 @@ setup:
 	@echo "✅ Setup complete. Run 'make dev' to start."
 
 hooks-install:
-	uv tool install pre-commit --python 3.11 || pip install pre-commit
-	pre-commit install
-	pre-commit install --hook-type commit-msg
+	uv tool install pre-commit --python 3.11
+	uv tool run pre-commit install
+	uv tool run pre-commit install --hook-type commit-msg
 	@echo "✅ Pre-commit hooks installed."
 
 dev:

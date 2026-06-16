@@ -1,7 +1,7 @@
 FROM python:3.11-slim AS base
 WORKDIR /app
 RUN apt-get update && apt-get install -y curl gcc libpq-dev && rm -rf /var/lib/apt/lists/*
-RUN pip install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 FROM base AS development
 COPY requirements.txt requirements-dev.txt ./

@@ -23,9 +23,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup():
     log.info("fts.api.startup", version="1.0.0", environment="development")
+
 
 @app.get("/health", tags=["health"])
 async def health():

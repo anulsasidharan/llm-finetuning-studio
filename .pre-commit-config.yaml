@@ -1,0 +1,37 @@
+repos:
+  # ── Python: ruff lint + format ───────────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        name: "ruff lint (backend)"
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^apps/backend/
+      - id: ruff-format
+        name: "ruff format (backend)"
+        files: ^apps/backend/
+
+      - id: ruff
+        name: "ruff lint (training_engine)"
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^training_engine/
+      - id: ruff-format
+        name: "ruff format (training_engine)"
+        files: ^training_engine/
+
+  # ── Frontend: ESLint + TypeScript ───────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: eslint-frontend
+        name: "ESLint (frontend)"
+        entry: bash -c 'cd apps/frontend && npm run lint'
+        language: system
+        files: ^apps/frontend/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: tsc-frontend
+        name: "TypeScript typecheck (frontend)"
+        entry: bash -c 'cd apps/frontend && npx tsc --noEmit'
+        language: system
+        files: ^apps/frontend/.*\.(ts|tsx)$
+        pass_filenames: false

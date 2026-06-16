@@ -29,7 +29,9 @@ setup:
 	cd $(BACKEND) && uv venv .venv --python 3.11 && \
 	  . .venv/bin/activate && uv pip install -r requirements.txt
 	cd $(TRAINING) && uv venv .venv --python 3.11 && \
-	  . .venv/bin/activate && uv pip install -r requirements.txt
+	  . .venv/bin/activate && \
+	  uv pip install torch==2.3.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+	  uv pip install -r requirements.txt
 	$(MAKE) hooks-install
 	$(COMPOSE) up -d postgres redis minio minio_init
 	sleep 15

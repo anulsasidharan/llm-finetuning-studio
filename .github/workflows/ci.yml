@@ -137,6 +137,10 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
 
+      - name: Install torch (CPU wheels)
+        working-directory: training_engine
+        run: uv pip install --system torch==2.3.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
       - name: Install dependencies
         working-directory: training_engine
         run: uv pip install --system -r requirements.txt

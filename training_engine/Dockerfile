@@ -3,6 +3,8 @@ WORKDIR /training_engine
 RUN apt-get update && apt-get install -y curl gcc git && rm -rf /var/lib/apt/lists/*
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 COPY requirements.txt ./
+RUN uv pip install --system torch==2.3.0 torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/cpu
 RUN uv pip install --system -r requirements.txt
 COPY . .
 

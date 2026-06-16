@@ -1,0 +1,166 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  backend-lint:
+    name: Backend Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        working-directory: apps/backend
+        run: uv pip install --system -r requirements.txt -r requirements-dev.txt
+
+      - name: Run ruff lint
+        working-directory: apps/backend
+        run: ruff check .
+
+      - name: Run ruff format check
+        working-directory: apps/backend
+        run: ruff format --check .
+
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    needs: backend-lint
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: fts_user
+          POSTGRES_PASSWORD: fts_test_password
+          POSTGRES_DB: fts_test_db
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://fts_user:fts_test_password@localhost:5433/fts_test_db
+      DATABASE_URL_SYNC: postgresql://fts_user:fts_test_password@localhost:5433/fts_test_db
+      REDIS_URL: redis://localhost:6380/0
+      SECRET_KEY: test-secret-key-minimum-32-characters-long
+      ENVIRONMENT: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        working-directory: apps/backend
+        run: uv pip install --system -r requirements.txt -r requirements-dev.txt
+
+      - name: Run migrations
+        working-directory: apps/backend
+        run: alembic upgrade head
+
+      - name: Run tests
+        working-directory: apps/backend
+        run: pytest tests/ -v --cov=. --cov-report=xml
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: apps/backend/coverage.xml
+
+  frontend-lint:
+    name: Frontend Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: apps/frontend
+        run: npm run lint
+
+      - name: Run TypeScript check
+        working-directory: apps/frontend
+        run: npx tsc --noEmit
+
+  training-engine-lint:
+    name: Training Engine Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        working-directory: training_engine
+        run: uv pip install --system -r requirements.txt
+
+      - name: Run ruff lint
+        working-directory: training_engine
+        run: ruff check .
+
+      - name: Run ruff format check
+        working-directory: training_engine
+        run: ruff format --check .
+
+  docker-build:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    needs: [backend-lint, frontend-lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build --target development -t fts-backend:ci apps/backend/
+
+      - name: Build frontend image
+        run: docker build --target development -t fts-frontend:ci apps/frontend/
+
+      - name: Build training engine image
+        run: docker build --target development -t fts-training:ci training_engine/

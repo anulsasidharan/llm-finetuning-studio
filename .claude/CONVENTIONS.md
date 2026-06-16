@@ -115,3 +115,70 @@ Example: feat/phase1-week2-backend-core
 ### Docker containers: fts_{service} (fts_postgres, fts_redis)
 ### Docker volumes: fts_{name}_data
 ### Environment variables: SCREAMING_SNAKE_CASE
+
+## GIT BRANCHING STRATEGY
+
+### Branch hierarchy
+main
+└── develop
+    ├── feat/phase1-week1-001-project-scaffold
+    ├── feat/phase1-week2-001-backend-config
+    ├── feat/phase1-week2-002-database-setup
+    └── fix/phase1-week2-004-migration-error
+
+### Rules (NEVER break these)
+- NEVER commit directly to main
+- NEVER commit directly to develop
+- ALL work happens on feature branches cut from develop
+- Feature branches merge INTO develop via PR only
+- develop merges INTO main via PR only (at phase milestones)
+- main always represents a deployable state
+
+### Feature branch lifecycle
+# 1. Always start from latest develop
+git checkout develop
+git pull origin develop
+
+# 2. Cut feature branch — use task ID from BACKLOG.md
+git checkout -b feat/PHASE1-WEEK2-001-backend-config
+
+# 3. Work and commit frequently
+git add .
+git commit -m "feat(backend): add pydantic-settings config class"
+
+# 4. Push branch
+git push -u origin feat/PHASE1-WEEK2-001-backend-config
+
+# 5. Open PR → develop (never → main)
+# Use PR template from .github/PULL_REQUEST_TEMPLATE.md
+
+# 6. After PR merged — delete feature branch
+git checkout develop
+git pull origin develop
+git branch -d feat/PHASE1-WEEK2-001-backend-config
+
+### Branch naming convention
+feat/{TASK-ID}-{short-description}
+fix/{TASK-ID}-{short-description}
+chore/{TASK-ID}-{short-description}
+refactor/{TASK-ID}-{short-description}
+test/{TASK-ID}-{short-description}
+docs/{TASK-ID}-{short-description}
+
+Examples:
+feat/PHASE1-WEEK2-001-backend-config
+feat/PHASE1-WEEK2-005-security-module
+fix/PHASE1-WEEK3-001-dataset-upload-cors
+chore/PHASE1-WEEK1-002-makefile-setup
+test/PHASE2-009-celery-training-task
+
+### Merge strategy
+- Feature → develop:  Squash and merge (keeps develop history clean)
+- develop → main:     Merge commit (preserves phase milestone marker)
+
+### develop → main promotion trigger
+Promote develop to main ONLY when a full phase is complete:
+- End of Phase 1 (Week 3 all tasks done)
+- End of Phase 2 (Week 8 all tasks done)
+- End of Phase 3 (Week 12 all tasks done)
+- End of Phase 4 (Week 16 all tasks done)

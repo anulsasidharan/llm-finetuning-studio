@@ -15,6 +15,15 @@
 - Last completed task: (update after each session)
 - Next task: (update after each session)
 
+## GIT WORKFLOW
+- main branch:     production-ready only — never commit directly
+- develop branch:  integration branch — never commit directly
+- feature branches: cut from develop, named feat/TASK-ID-description
+- all PRs target:  develop (never main)
+- develop → main:  only at end of each phase milestone
+- PR template:     .github/PULL_REQUEST_TEMPLATE.md
+- CI runs on:      push to develop + all PRs
+
 ## ARCHITECTURE DECISIONS (DO NOT REVISIT)
 - Frontend: Next.js 14 App Router only — never Pages Router
 - State: TanStack Query (server) + Zustand (client) + React Hook Form + Zod (forms)

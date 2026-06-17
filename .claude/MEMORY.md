@@ -12,8 +12,8 @@
 ## CURRENT PHASE
 - Phase: 1 — Infrastructure & Skeleton
 - Active Week: 2
-- Last completed task: PHASE1-WEEK2-001 — core/config.py full implementation (2026-06-17)
-- Next task: PHASE1-WEEK2-002 — core/database.py async SQLAlchemy engine + session factory
+- Last completed task: PHASE1-WEEK2-002 — core/database.py async SQLAlchemy engine + session factory (2026-06-17)
+- Next task: PHASE1-WEEK2-003 — all ORM models (user, fine_tune_job, dataset, experiment, model_registry)
 
 ## GIT WORKFLOW
 - main branch:     production-ready only — never commit directly
@@ -106,3 +106,4 @@ Payload type fields: metrics_update | status_change
 | 2026-06-15 | PHASE1-WEEK1-001: Full project infrastructure setup — 62 dirs, all Docker services, Next.js 14 + shadcn, FastAPI + uv, training_engine bootstrap, health endpoint confirmed | docker-compose.yml, all Dockerfiles, .env.example, .gitignore, Makefile, apps/backend/main.py, core/config.py, alembic.ini, start.sh, 79 files committed | PHASE1-WEEK1-002: Makefile verification + README.md |
 | 2026-06-17 | PHASE1-WEEK1-002: Verified Makefile targets (help/ps/logs/lint) by running underlying commands directly — `make` binary not installed in this Windows/Git Bash env, so verification was done via `docker compose ps/logs` and `uv run ruff check` on backend + training_engine (both clean); no Makefile fixes needed. Wrote full README.md (badges, features, tech stack, quickstart, service URLs, fine-tuning methods, project structure, dev commands, contributing, license placeholder) | README.md | PHASE1-WEEK2-001: core/config.py full implementation |
 | 2026-06-17 | PHASE1-WEEK2-001: Extended `Settings` to cover every var in `.env.example` (App/Postgres/Redis/MinIO/AWS S3/HuggingFace/Cloud GPU Vendors/GPU Pricing/Notifications/Training Engine), added `get_settings()` w/ `lru_cache`. Found+fixed a latent bug: `env_file=".env"` was cwd-relative and broke when running `uv run` from `apps/backend` (no local `.env` there); switched to an absolute path resolved from `config.py`'s own location (`Path(__file__).resolve().parents[3] / ".env"`). Verified settings import cleanly, `ruff check` clean, confirmed via `git stash` that remaining `ruff format` mismatches (13 files) pre-exist on develop and are unrelated. No `os.environ` usage anywhere in apps/backend | apps/backend/core/config.py | PHASE1-WEEK2-002: core/database.py async SQLAlchemy engine + session factory |
+| 2026-06-17 | PHASE1-WEEK2-002: Created `core/database.py` — async engine via `create_async_engine(settings.DATABASE_URL, echo=settings.ENVIRONMENT == "development", pool_pre_ping=True)`, `AsyncSessionLocal` (`async_sessionmaker`, `expire_on_commit=False`), declarative `Base(DeclarativeBase)`, and `get_db()` FastAPI dependency yielding an `AsyncSession` and closing it in `finally`. Verified import, `ruff check` and `ruff format --check` both clean. Pre-commit hooks (ruff lint/format on backend) passed automatically. Pushed branch; PR not opened (left for manual creation per established workflow) | apps/backend/core/database.py | PHASE1-WEEK2-003: all ORM models (user, fine_tune_job, dataset, experiment, model_registry) |

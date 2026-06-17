@@ -18,6 +18,16 @@ build/
 .ruff_cache/
 *.pyc
 
+# Test coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
 # Node
 node_modules/
 .next/
@@ -43,6 +53,14 @@ wandb/
 *.swp
 *.swo
 .DS_Store
+Thumbs.db
+desktop.ini
+*.bak
+*.tmp
+
+# Secrets / keys
+*.pem
+*.key
 
 # Docker
 .docker/
@@ -56,3 +74,7 @@ infra/terraform/.terraform/
 infra/terraform/*.tfstate
 infra/terraform/*.tfstate.backup
 infra/terraform/*.tfvars
+infra/terraform/*.tfplan
+
+# Claude Code local overrides
+.claude/settings.local.json

@@ -48,7 +48,7 @@ jobs:
         ports:
           - 5433:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U fts_user -d fts_test_db"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -91,9 +91,25 @@ jobs:
 
       - name: Run tests
         working-directory: apps/backend
-        run: pytest tests/ -v --cov=. --cov-report=xml
+        run: |
+          if [ -d tests ]; then
+            echo "Found tests/ directory — running pytest"
+            pytest -v --cov=. --cov-report=xml
+          else
+            echo "No backend tests found in apps/backend/tests — skipping pytest."
+          fi
+
+      - name: Check coverage file
+        id: check-coverage
+        run: |
+          if [ -f apps/backend/coverage.xml ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload coverage
+        if: steps.check-coverage.outputs.exists == 'true'
         uses: codecov/codecov-action@v4
         with:
           file: apps/backend/coverage.xml

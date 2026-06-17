@@ -11,9 +11,9 @@
 
 ## CURRENT PHASE
 - Phase: 1 — Infrastructure & Skeleton
-- Active Week: 1
-- Last completed task: PHASE1-WEEK1-001 — Project Infrastructure Setup (2026-06-15)
-- Next task: PHASE1-WEEK1-002 — Makefile verification + README.md
+- Active Week: 2
+- Last completed task: PHASE1-WEEK1-002 — Makefile verification + README.md (2026-06-17)
+- Next task: PHASE1-WEEK2-001 — core/config.py full implementation (all env vars)
 
 ## GIT WORKFLOW
 - main branch:     production-ready only — never commit directly
@@ -104,3 +104,4 @@ Payload type fields: metrics_update | status_change
 | Date | What was done | Files changed | Next task |
 |------|--------------|---------------|-----------|
 | 2026-06-15 | PHASE1-WEEK1-001: Full project infrastructure setup — 62 dirs, all Docker services, Next.js 14 + shadcn, FastAPI + uv, training_engine bootstrap, health endpoint confirmed | docker-compose.yml, all Dockerfiles, .env.example, .gitignore, Makefile, apps/backend/main.py, core/config.py, alembic.ini, start.sh, 79 files committed | PHASE1-WEEK1-002: Makefile verification + README.md |
+| 2026-06-17 | PHASE1-WEEK1-002: Verified Makefile targets (help/ps/logs/lint) by running underlying commands directly — `make` binary not installed in this Windows/Git Bash env, so verification was done via `docker compose ps/logs` and `uv run ruff check` on backend + training_engine (both clean); no Makefile fixes needed. Wrote full README.md (badges, features, tech stack, quickstart, service URLs, fine-tuning methods, project structure, dev commands, contributing, license placeholder) | README.md | PHASE1-WEEK2-001: core/config.py full implementation |

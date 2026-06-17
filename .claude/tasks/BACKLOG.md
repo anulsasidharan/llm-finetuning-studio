@@ -9,12 +9,11 @@
 | PHASE1-WEEK1-001 | Project scaffold + Docker stack + all services healthy | ✅ DONE | — | feat/PHASE1-WEEK1-001-project-scaffold |
 | PHASE1-WEEK1-002 | Makefile verification + README.md quickstart | ✅ DONE | PHASE1-WEEK1-001 | feat/PHASE1-WEEK1-002-makefile-readme |
 | PHASE1-WEEK1-003 | Write .gitignore | ✅ DONE | PHASE1-WEEK1-001 | feat/PHASE1-WEEK1-003-gitignore |
-| PHASE1-WEEK1-004 | Write README.md with quickstart | ⬜ TODO | PHASE1-WEEK1-001 | feat/PHASE1-WEEK1-004-readme |
 
 ### Week 2 — Backend Core
 | ID | Task | Status | Depends On | Branch Name |
 |----|------|--------|------------|-------------|
-| PHASE1-WEEK2-001 | core/config.py — pydantic-settings all env vars | ⬜ TODO | PHASE1-WEEK1-001 | feat/PHASE1-WEEK2-001-core-config |
+| PHASE1-WEEK2-001 | core/config.py — pydantic-settings all env vars | ✅ DONE | PHASE1-WEEK1-001 | feat/PHASE1-WEEK2-001-core-config |
 | PHASE1-WEEK2-002 | core/database.py — async SQLAlchemy engine + session | ⬜ TODO | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-002-core-database |
 | PHASE1-WEEK2-003 | All ORM models (user, fine_tune_job, dataset, experiment, model_registry) | ⬜ TODO | PHASE1-WEEK2-002 | feat/PHASE1-WEEK2-003-orm-models |
 | PHASE1-WEEK2-004 | Alembic config + initial migration | ⬜ TODO | PHASE1-WEEK2-003 | feat/PHASE1-WEEK2-004-alembic-migration |

@@ -93,6 +93,19 @@ the Week 2 backlog in dependency order: config → database → ORM models → a
 seed_data. The celery_worker and celery_beat containers are still restarting because
 core/celery_app.py doesn't exist yet (PHASE1-WEEK2-008 fixes that).
 
+## PREVIOUS TASK SUMMARY (PHASE1-WEEK1-003, gitignore audit)
+Completed 2026-06-17. BACKLOG.md had already marked this DONE from the original template,
+and a working .gitignore already existed from the WEEK1-001 scaffold — so this pass was an
+audit, not a from-scratch write. Verified via `git status --ignored` and `git ls-files` that
+no build artifacts were accidentally tracked and no new pattern collided with a tracked file.
+Closed real gaps: test coverage artifacts (`.coverage`, `htmlcov/`, `coverage.xml` — backend
+uses pytest-cov), Celery beat schedule files, Windows OS files (Thumbs.db, desktop.ini),
+generic temp/backup files, private key/cert files (`*.pem`, `*.key`), an extra Terraform
+artifact (`*.tfplan`), and Claude Code's `.claude/settings.local.json` local override.
+Confirmed `apps/frontend/.gitignore` (from create-next-app) already covers Next.js-specific
+patterns (`.pnp`, `.vercel`, `*.tsbuildinfo`, `next-env.d.ts`) — left as-is, no duplication
+needed at root. Committed and pushed to feat/PHASE1-WEEK1-003-gitignore.
+
 ## PREVIOUS TASK SUMMARY (PHASE1-WEEK1-002)
 Completed 2026-06-17. Verified Makefile (`make` binary not installed in this Windows/Git
 Bash environment — verified by running the underlying shell commands directly: `docker

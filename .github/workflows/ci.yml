@@ -27,11 +27,11 @@ jobs:
 
       - name: Run ruff lint
         working-directory: apps/backend
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Run ruff format check
         working-directory: apps/backend
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
   backend-test:
     name: Backend Tests
@@ -147,11 +147,11 @@ jobs:
 
       - name: Run ruff lint
         working-directory: training_engine
-        run: ruff check .
+        run: uv run ruff check .
 
       - name: Run ruff format check
         working-directory: training_engine
-        run: ruff format --check .
+        run: uv run ruff format --check .
 
   docker-build:
     name: Docker Build Check

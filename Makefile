@@ -27,11 +27,10 @@ setup:
 	cp -n .env.example .env || true
 	cd $(FRONTEND) && npm install
 	cd $(BACKEND) && uv venv .venv --python 3.11 && \
-	  . .venv/bin/activate && uv pip install -r requirements.txt
+	  uv pip install --python .venv -r requirements.txt
 	cd $(TRAINING) && uv venv .venv --python 3.11 && \
-	  . .venv/bin/activate && \
-	  uv pip install torch==2.3.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-	  uv pip install -r requirements.txt
+	  uv pip install --python .venv torch==2.3.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+	  uv pip install --python .venv -r requirements.txt
 	$(MAKE) hooks-install
 	$(COMPOSE) up -d postgres redis minio minio_init
 	sleep 15
@@ -83,26 +82,26 @@ minio-ui:
 
 test:
 	cd $(FRONTEND) && npm run test
-	cd $(BACKEND) && . .venv/bin/activate && pytest tests/ -v --cov=.
-	cd $(TRAINING) && . .venv/bin/activate && pytest tests/ -v
+	cd $(BACKEND) && uv run --python .venv pytest tests/ -v --cov=.
+	cd $(TRAINING) && uv run --python .venv pytest tests/ -v
 
 lint:
 	cd $(FRONTEND) && npm run lint
-	cd $(BACKEND) && . .venv/bin/activate && ruff check .
-	cd $(TRAINING) && . .venv/bin/activate && ruff check .
+	cd $(BACKEND) && uv run --python .venv ruff check .
+	cd $(TRAINING) && uv run --python .venv ruff check .
 
 format:
 	cd $(FRONTEND) && npx prettier --write .
-	cd $(BACKEND) && . .venv/bin/activate && ruff format .
-	cd $(TRAINING) && . .venv/bin/activate && ruff format .
+	cd $(BACKEND) && uv run --python .venv ruff format .
+	cd $(TRAINING) && uv run --python .venv ruff format .
 
 check:
 	@echo "── ruff lint ──────────────────────────────────────────"
-	cd $(BACKEND) && . .venv/bin/activate && ruff check .
-	cd $(TRAINING) && . .venv/bin/activate && ruff check .
+	cd $(BACKEND) && uv run --python .venv ruff check .
+	cd $(TRAINING) && uv run --python .venv ruff check .
 	@echo "── ruff format ────────────────────────────────────────"
-	cd $(BACKEND) && . .venv/bin/activate && ruff format --check .
-	cd $(TRAINING) && . .venv/bin/activate && ruff format --check .
+	cd $(BACKEND) && uv run --python .venv ruff format --check .
+	cd $(TRAINING) && uv run --python .venv ruff format --check .
 	@echo "── ESLint ─────────────────────────────────────────────"
 	cd $(FRONTEND) && npm run lint
 	@echo "── TypeScript ─────────────────────────────────────────"
@@ -111,8 +110,8 @@ check:
 
 fix:
 	@echo "── ruff fix ───────────────────────────────────────────"
-	cd $(BACKEND) && . .venv/bin/activate && ruff check --fix . && ruff format .
-	cd $(TRAINING) && . .venv/bin/activate && ruff check --fix . && ruff format .
+	cd $(BACKEND) && uv run --python .venv ruff check --fix . && uv run --python .venv ruff format .
+	cd $(TRAINING) && uv run --python .venv ruff check --fix . && uv run --python .venv ruff format .
 	@echo "── prettier fix ───────────────────────────────────────"
 	cd $(FRONTEND) && npx prettier --write .
 	@echo "── eslint fix ─────────────────────────────────────────"

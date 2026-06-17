@@ -78,6 +78,7 @@ redis==5.0.4
 regex==2026.5.9
 requests==2.34.2
 rouge-score==0.1.2
+ruff==0.4.4
 s3transfer==0.9.0
 sacrebleu==2.6.0
 safetensors==0.8.0

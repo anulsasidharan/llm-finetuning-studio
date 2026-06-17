@@ -6,8 +6,8 @@
 ### Week 1 — Infrastructure
 | ID | Task | Status | Depends On | Branch Name |
 |----|------|--------|------------|-------------|
-| PHASE1-WEEK1-001 | Project scaffold + Docker stack + all services healthy | 🔄 IN PROGRESS | — | feat/PHASE1-WEEK1-001-project-scaffold |
-| PHASE1-WEEK1-002 | Write Makefile with all commands | ⬜ TODO | PHASE1-WEEK1-001 | feat/PHASE1-WEEK1-002-makefile-readme |
+| PHASE1-WEEK1-001 | Project scaffold + Docker stack + all services healthy | ✅ DONE | — | feat/PHASE1-WEEK1-001-project-scaffold |
+| PHASE1-WEEK1-002 | Makefile verification + README.md quickstart | 🔄 IN PROGRESS | PHASE1-WEEK1-001 | feat/PHASE1-WEEK1-002-makefile-readme |
 | PHASE1-WEEK1-003 | Write .gitignore | ✅ DONE | PHASE1-WEEK1-001 | feat/PHASE1-WEEK1-003-gitignore |
 | PHASE1-WEEK1-004 | Write README.md with quickstart | ⬜ TODO | PHASE1-WEEK1-001 | feat/PHASE1-WEEK1-004-readme |
 

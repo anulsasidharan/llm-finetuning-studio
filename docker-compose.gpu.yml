@@ -1,0 +1,35 @@
+# Usage: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up
+
+version: "3.9"
+
+services:
+  training_engine:
+    build:
+      context: ./training_engine
+      dockerfile: Dockerfile
+      target: gpu
+    container_name: fts_training_engine
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      CUDA_VISIBLE_DEVICES: "0"
+    depends_on:
+      - redis
+      - minio
+    volumes:
+      - ./training_engine:/training_engine
+      - fts_hf_cache:/training_engine/.cache/huggingface
+    networks:
+      - fts_network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command: >
+      celery -A worker.celery_app worker
+      --loglevel=info
+      --queues=gpu_training
+      --concurrency=1

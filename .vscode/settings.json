@@ -1,0 +1,43 @@
+{
+  "editor.formatOnSave": true,
+  "files.eol": "\n",
+
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  "ruff.organizeImports": true,
+  "ruff.fixAll": true,
+  "ruff.configurationPreference": "filesystemFirst",
+
+  "eslint.workingDirectories": [
+    { "directory": "./apps/frontend", "changeProcessCWD": true }
+  ],
+  "eslint.validate": ["typescript", "typescriptreact", "javascript"],
+
+  "typescript.tsdk": "apps/frontend/node_modules/typescript/lib",
+
+  "python.defaultInterpreterPath": "${workspaceFolder}/apps/backend/.venv/bin/python"
+}

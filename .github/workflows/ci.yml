@@ -66,8 +66,13 @@ jobs:
     env:
       DATABASE_URL: postgresql+asyncpg://fts_user:fts_test_password@localhost:5433/fts_test_db
       DATABASE_URL_SYNC: postgresql://fts_user:fts_test_password@localhost:5433/fts_test_db
+      POSTGRES_PASSWORD: fts_test_password
       REDIS_URL: redis://localhost:6380/0
+      REDIS_PASSWORD: ""
+      CELERY_BROKER_URL: redis://localhost:6380/0
+      CELERY_RESULT_BACKEND: redis://localhost:6380/0
       SECRET_KEY: test-secret-key-minimum-32-characters-long
+      MINIO_ROOT_PASSWORD: test-minio-password
       ENVIRONMENT: test
 
     steps:

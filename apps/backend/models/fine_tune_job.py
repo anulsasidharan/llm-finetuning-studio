@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from core.database import Base
-from sqlalchemy import DateTime, Float, ForeignKey, Numeric, String, func
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Numeric, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +16,10 @@ if TYPE_CHECKING:
 
 class FineTuneJob(Base):
     __tablename__ = "fine_tune_jobs"
+    __table_args__ = (
+        Index("idx_jobs_user_id", "user_id"),
+        Index("idx_jobs_status", "status"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
@@ -24,14 +28,13 @@ class FineTuneJob(Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     dataset_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("datasets.id"),
         nullable=True,
     )
-    status: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False)
     base_model_id: Mapped[str] = mapped_column(String(255), nullable=False)
     methodology: Mapped[str] = mapped_column(String(50), nullable=False)
     training_config: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)

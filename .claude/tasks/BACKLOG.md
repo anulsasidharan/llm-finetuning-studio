@@ -21,7 +21,7 @@
 | PHASE1-WEEK2-006 | core/auth.py — JWT create + verify + get_current_user dependency | ✅ DONE | PHASE1-WEEK2-005 | feat/PHASE1-WEEK2-006-core-auth |
 | PHASE1-WEEK2-007 | core/storage.py — MinIO client + upload/download/presigned URL | ✅ DONE | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-007-core-storage |
 | PHASE1-WEEK2-008 | core/celery_app.py — Celery app + queue routing | ✅ DONE | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-008-celery-app |
-| PHASE1-WEEK2-009 | core/exceptions.py — custom exception hierarchy | ⬜ TODO | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-009-exceptions |
+| PHASE1-WEEK2-009 | core/exceptions.py — custom exception hierarchy | ✅ DONE | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-009-exceptions |
 | PHASE1-WEEK2-010 | main.py — FastAPI app factory + router registration + CORS | ⬜ TODO | PHASE1-WEEK2-006 | feat/PHASE1-WEEK2-010-fastapi-app |
 | PHASE1-WEEK2-011 | GET /health endpoint | ⬜ TODO | PHASE1-WEEK2-010 | feat/PHASE1-WEEK2-011-health-endpoint |
 | PHASE1-WEEK2-012 | Auth routes — POST /register, /login, /refresh, GET /me | ⬜ TODO | PHASE1-WEEK2-006 | feat/PHASE1-WEEK2-012-auth-routes |

@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from core.database import Base
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 class ModelRegistry(Base):
     __tablename__ = "model_registry"
+    __table_args__ = (Index("idx_registry_user", "user_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
@@ -22,7 +23,6 @@ class ModelRegistry(Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     fine_tune_job_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

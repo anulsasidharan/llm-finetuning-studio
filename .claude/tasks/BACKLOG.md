@@ -23,7 +23,7 @@
 | PHASE1-WEEK2-008 | core/celery_app.py — Celery app + queue routing | ✅ DONE | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-008-celery-app |
 | PHASE1-WEEK2-009 | core/exceptions.py — custom exception hierarchy | ✅ DONE | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-009-exceptions |
 | PHASE1-WEEK2-010 | main.py — FastAPI app factory + router registration + CORS | ✅ DONE | PHASE1-WEEK2-006 | feat/PHASE1-WEEK2-010-fastapi-app |
-| PHASE1-WEEK2-011 | GET /health endpoint | ⬜ TODO | PHASE1-WEEK2-010 | feat/PHASE1-WEEK2-011-health-endpoint |
+| PHASE1-WEEK2-011 | GET /health endpoint | ✅ DONE | PHASE1-WEEK2-010 | feat/PHASE1-WEEK2-011-health-endpoint |
 | PHASE1-WEEK2-012 | Auth routes — POST /register, /login, /refresh, GET /me | ⬜ TODO | PHASE1-WEEK2-006 | feat/PHASE1-WEEK2-012-auth-routes |
 | PHASE1-WEEK2-013 | scripts/seed_data.py — model catalog + GPU pricing | ⬜ TODO | PHASE1-WEEK2-004 | feat/PHASE1-WEEK2-013-seed-data |
 

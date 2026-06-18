@@ -3,7 +3,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-REPO_ROOT_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+_CONFIG_PARENTS = Path(__file__).resolve().parents
+REPO_ROOT_ENV_FILE = _CONFIG_PARENTS[3] / ".env" if len(_CONFIG_PARENTS) > 3 else None
 
 
 class Settings(BaseSettings):

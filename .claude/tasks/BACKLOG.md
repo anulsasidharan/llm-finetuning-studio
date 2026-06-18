@@ -17,7 +17,7 @@
 | PHASE1-WEEK2-002 | core/database.py — async SQLAlchemy engine + session | ✅ DONE | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-002-core-database |
 | PHASE1-WEEK2-003 | All ORM models (user, fine_tune_job, dataset, experiment, model_registry) | ✅ DONE | PHASE1-WEEK2-002 | feat/PHASE1-WEEK2-003-orm-models |
 | PHASE1-WEEK2-004 | Alembic config + initial migration | ✅ DONE | PHASE1-WEEK2-003 | feat/PHASE1-WEEK2-004-alembic-migration |
-| PHASE1-WEEK2-005 | core/security.py — bcrypt password hashing | ⬜ TODO | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-005-core-security |
+| PHASE1-WEEK2-005 | core/security.py — bcrypt password hashing | ✅ DONE | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-005-core-security |
 | PHASE1-WEEK2-006 | core/auth.py — JWT create + verify + get_current_user dependency | ⬜ TODO | PHASE1-WEEK2-005 | feat/PHASE1-WEEK2-006-core-auth |
 | PHASE1-WEEK2-007 | core/storage.py — MinIO client + upload/download/presigned URL | ⬜ TODO | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-007-core-storage |
 | PHASE1-WEEK2-008 | core/celery_app.py — Celery app + queue routing | ⬜ TODO | PHASE1-WEEK2-001 | feat/PHASE1-WEEK2-008-celery-app |

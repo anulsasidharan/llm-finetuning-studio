@@ -2,40 +2,50 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE1-WEEK2-011
-## TASK NAME: GET /health — database + redis + storage status
+## TASK ID: PHASE1-WEEK2-012
+## TASK NAME: Auth routes — POST /register, /login, /refresh, GET /me
 ## STATUS: ⬜ TODO
 ## ASSIGNED PHASE: Phase 1, Week 2
-## BRANCH: feat/PHASE1-WEEK2-011-health-endpoint
+## BRANCH: feat/PHASE1-WEEK2-012-auth-routes
 
 ## OBJECTIVE
-The current `/health` endpoint in `apps/backend/main.py` only returns a
-static `{"status": "healthy", "service": ..., "version": ...}` body. Per
-CLAUDE.md section 5, `GET /health` must report actual database + redis +
-storage connectivity status, not just a static "I'm up" response.
+Per CLAUDE.md section 5, wire up the four auth endpoints:
+`POST /api/v1/auth/register`, `POST /api/v1/auth/login`,
+`POST /api/v1/auth/refresh`, `GET /api/v1/auth/me` (and `POST
+/api/v1/auth/logout` is also listed in CLAUDE.md — confirm scope with
+user before deferring it; logout is typically a no-op/client-side token
+discard for stateless JWT, but check if a token-blocklist is expected).
+All the underlying pieces already exist — this task is route wiring +
+Pydantic schemas, not new core logic.
 
 ## ACCEPTANCE CRITERIA
-- [ ] `/health` checks PostgreSQL connectivity (via `core/database.py`'s
-      `AsyncSessionLocal`/`get_db()` — e.g. a trivial `SELECT 1`)
-- [ ] `/health` checks Redis connectivity (a `PING` against
-      `settings.REDIS_URL`)
-- [ ] `/health` checks MinIO/storage connectivity (via
-      `core/storage.py`'s `minio_client` — e.g. `bucket_exists` or
-      equivalent lightweight call)
-- [ ] Response body reports per-dependency status (e.g.
-      `{"status": "healthy"|"degraded", "database": "up"|"down",
-      "redis": "up"|"down", "storage": "up"|"down"}`) — exact shape is a
-      judgment call, but it must surface all three independently
-- [ ] Endpoint does not raise/500 when a dependency is down — catch and
-      report `"down"` per-dependency, overall `status` reflects whether
-      any dependency failed
-- [ ] Full type hints
-- [ ] No `print()` — use `structlog` if logging is needed
-- [ ] Existing tests in `tests/test_health.py` updated for the new
-      response shape; still passing
+- [ ] `apps/backend/schemas/auth.py` — `UserRegister` (email, password,
+      full_name), `UserLogin` (email, password), `TokenResponse`
+      (access_token, refresh_token, token_type), `RefreshRequest`
+      (refresh_token), `UserResponse` (id, email, full_name, is_active,
+      created_at) — Pydantic v2, full type hints
+- [ ] `apps/backend/api/v1/routes/auth.py` — `router = APIRouter()` with:
+  - `POST /register` — checks email uniqueness (409 `ConflictError` from
+    `core/exceptions.py` if taken), hashes password via
+    `core.security.hash_password`, creates `User` row, returns
+    `UserResponse`
+  - `POST /login` — looks up user by email, verifies password via
+    `core.security.verify_password`, returns `TokenResponse` (access +
+    refresh via `core.auth.create_access_token`/`create_refresh_token`)
+  - `POST /refresh` — decodes the refresh token via `core.auth`, issues a
+    new access token
+  - `GET /me` — `Depends(core.auth.get_current_user)`, returns
+    `UserResponse` for the current user
+- [ ] Wire `auth.router` into `api/v1/__init__.py`'s `api_router` (the
+  commented example is already there from PHASE1-WEEK2-010)
+- [ ] All DB access async (`AsyncSession` via `Depends(get_db)`)
+- [ ] Full type hints; no `print()`; `structlog` if logging needed
+- [ ] New tests under `apps/backend/tests/` covering register (success +
+  duplicate-email 409), login (success + wrong-password 401), refresh
+  (success + invalid-token 401), me (success + unauthenticated 401)
 - [ ] `uv run pytest -q` passes (full suite)
-- [ ] `uv run ruff check .` and `uv run ruff format --check core/ tests/
-      main.py` pass on touched files
+- [ ] `uv run ruff check .` and `uv run ruff format --check` pass on
+  touched files
 
 ## STEPS TO COMPLETE
 
@@ -43,95 +53,94 @@ storage connectivity status, not just a static "I'm up" response.
 ```
 git checkout develop
 git pull origin develop
-git checkout -b feat/PHASE1-WEEK2-011-health-endpoint
+git checkout -b feat/PHASE1-WEEK2-012-auth-routes
 ```
 
-### Step 2 — Read current main.py, core/database.py, core/storage.py, core/config.py (REDIS_URL)
-Decide where the dependency-check logic lives — likely inline in
-`main.py`'s `/health` handler (it's the only consumer so far), using
-`get_db`/`AsyncSessionLocal`, a `redis.asyncio` client built from
-`settings.REDIS_URL`, and `minio_client` from `core/storage.py`. Check
-whether `redis` (the Python package) is already a dependency before
-adding a new import.
+### Step 2 — Read core/auth.py, core/security.py, core/exceptions.py, models/user.py, api/v1/__init__.py
+Confirm exact function signatures before wiring (don't assume — verify
+`create_access_token`/`create_refresh_token`/`get_current_user`'s actual
+params/return types).
 
-### Step 3 — Implement
-Keep each dependency check isolated (try/except per dependency) so one
-failure doesn't mask the others or crash the endpoint.
+### Step 3 — Implement schemas, then routes, then wire into api_router
 
 ### Step 4 — Verify
 ```
 (cd apps/backend && uv run pytest -q)
 (cd apps/backend && uv run ruff check .)
-(cd apps/backend && uv run ruff format --check core/ tests/ main.py)
+(cd apps/backend && uv run ruff format --check schemas/ api/ tests/)
 ```
-(Always wrap `cd`-then-run sequences in a subshell `(cd dir && cmd)` —
-this now applies to ANY directory navigation in the Bash tool this
-session, not just verification commands; a bare `cd .claude/tasks &&
-ls` during tracking-file updates broke the lint hook in the
-PHASE1-WEEK2-010 session.)
+(Standing rule: always wrap `cd`-then-run sequences in a subshell
+`(cd dir && cmd)` — applies to ANY directory navigation in the Bash tool
+this session, not just verification commands.)
 
 ### Step 5 — Stage, commit, push
 ```
-git add apps/backend/main.py apps/backend/tests/test_health.py  # + any new core/ file
-git commit -m "feat(api): PHASE1-WEEK2-011 /health reports db + redis + storage status"
-git push origin feat/PHASE1-WEEK2-011-health-endpoint
+git add apps/backend/schemas/auth.py apps/backend/api/v1/routes/auth.py apps/backend/api/v1/__init__.py apps/backend/tests/test_auth_routes.py
+git commit -m "feat(api): PHASE1-WEEK2-012 auth routes — register/login/refresh/me"
+git push origin feat/PHASE1-WEEK2-012-auth-routes
 ```
 
 ### Step 6 — Update tracking files
 1. CURRENT_TASK.md → mark STATUS: ✅ COMPLETE, all criteria [x]
-2. DONE.md → add row for PHASE1-WEEK2-011
-3. BACKLOG.md → PHASE1-WEEK2-011 ✅ DONE
+2. DONE.md → add row for PHASE1-WEEK2-012
+3. BACKLOG.md → PHASE1-WEEK2-012 ✅ DONE
 4. MEMORY.md → update session log
-5. CURRENT_TASK.md → replace with PHASE1-WEEK2-012 content (auth routes:
-   POST /register, /login, /refresh, GET /me — depends on `core/auth.py`
-   (done), `core/security.py` (done), the router scaffold from
-   PHASE1-WEEK2-010 (done))
+5. CURRENT_TASK.md → replace with PHASE1-WEEK2-013 content
+   (`scripts/seed_data.py` — model catalog + GPU pricing, depends on
+   Alembic migration from PHASE1-WEEK2-004, done)
 
 ## FILES TO UPDATE IN THIS TASK
-- apps/backend/main.py
-- apps/backend/tests/test_health.py
-- apps/backend/requirements.txt (only if a new redis client dependency is needed)
+- apps/backend/schemas/auth.py (new)
+- apps/backend/api/v1/routes/auth.py (new)
+- apps/backend/api/v1/__init__.py (uncomment + wire the auth router)
+- apps/backend/tests/test_auth_routes.py (new)
 
 ## BLOCKERS
-None.
+None — all dependencies (`core/auth.py`, `core/security.py`,
+`core/exceptions.py`, `models/user.py`, `api/v1/api_router` scaffold) are
+done.
 
 ## NOTES FOR NEXT TASK
-After this task: PHASE1-WEEK2-012 (auth routes) depends on `core/auth.py`
-(done), `core/security.py` (done), and the `api/v1/api_router` scaffold
-from PHASE1-WEEK2-010 (done) — route modules go under
-`apps/backend/api/v1/routes/`. Then `scripts/seed_data.py`
-(PHASE1-WEEK2-013). Continue down the Week 2 backlog in dependency order.
+After this task: PHASE1-WEEK2-013 (`scripts/seed_data.py` — model catalog
++ GPU pricing seed script, depends on the Alembic migration from
+PHASE1-WEEK2-004). That closes out the remaining Week 2 backlog items
+before Week 3 (dataset upload + frontend shell) begins.
 
-Also flagged in PHASE1-WEEK2-009: `core/auth.py`'s local
+Also still open from PHASE1-WEEK2-009: `core/auth.py`'s local
 `CREDENTIALS_EXCEPTION = HTTPException(401)` could be migrated to the
 `core/exceptions.py` `UnauthorizedError` hierarchy now that it exists —
-not required for this task, consider as a small follow-up when auth
-routes are touched in PHASE1-WEEK2-012.
+worth doing in this task since auth.py is already being touched/extended
+for routes, but not a hard requirement.
 
-## PREVIOUS TASK SUMMARY (PHASE1-WEEK2-010)
-Completed 2026-06-18. Turned `apps/backend/main.py` into a
-`create_app() -> FastAPI` factory (module-level `app = create_app()`
-retained for `tests/conftest.py`'s `from main import app`). Migrated the
-deprecated `@app.on_event("startup")` to an `@asynccontextmanager async
-def lifespan(app)` — done in-task since it's the same file and was
-producing a pytest deprecation warning. Added `Settings.CORS_ORIGINS:
-list[str]` (default `["http://localhost:3000", "http://127.0.0.1:3000"]`)
-so CORS middleware reads from config instead of a hardcoded list. Added
-`api/v1/api_router = APIRouter()` in `apps/backend/api/v1/__init__.py` as
-the router-registration scaffold (empty, with a commented example for
-the auth router landing next), wired via `app.include_router(api_router,
-prefix="/api/v1")`. `/health` endpoint body left unchanged — the full
-CLAUDE.md spec (db/redis/storage status) is this task, PHASE1-WEEK2-011.
+Known unrelated issue (not in scope, just flagged): `fts_backend`'s
+Docker `start.sh` fails with `set: Illegal option -` on container start
+in this environment — looks like a CRLF line-ending issue from a Windows
+checkout corrupting a `set -euo pipefail` (or similar) line. Verification
+in PHASE1-WEEK2-011 worked around it by running the app locally via `uv
+run uvicorn` against host-mapped ports instead of inside the
+`fts_backend` container. Worth a dedicated fix-it task at some point.
 
-Full 33-test suite passes with zero warnings (deprecation warning gone).
-`ruff check .` clean repo-wide; `ruff format --check` clean on all three
-touched files. Pre-commit hook passed automatically. Pushed
-`feat/PHASE1-WEEK2-010-fastapi-app`; PR not opened (manual creation per
-established workflow).
+## PREVIOUS TASK SUMMARY (PHASE1-WEEK2-011)
+Completed 2026-06-18. Replaced `/health`'s static body with three
+isolated dependency checks in `main.py`: `_check_database` (`SELECT 1`
+via `AsyncSessionLocal`), `_check_redis` (`PING` via
+`redis.asyncio.from_url(settings.REDIS_URL)`), `_check_storage`
+(`asyncio.to_thread(minio_client.bucket_exists, settings.BUCKET_DATASETS)`).
+Response now reports `database`/`redis`/`storage` as `"up"`/`"down"` plus
+overall `status: "healthy"|"degraded"`.
 
-**Gotcha, new flavor:** a bare `cd .claude/tasks && ls -la` (no subshell)
-run while updating tracking files *after* the feature work was already
-pushed leaked cwd forward and broke the next `Edit`'s lint hook. The
-standing `(cd dir && cmd)` rule now applies to every directory
-navigation in the Bash tool this session, not just verification commands
-on `apps/backend`.
+Live verification against the real `fts_postgres`/`fts_redis`/`fts_minio`
+containers (via host-mapped ports, since `.env` uses Docker-internal
+hostnames) caught a real issue: when a dependency is unreachable, the
+underlying client's default retry/backoff can block for 20s+ (measured
+~20.5s for MinIO's `bucket_exists` on DNS failure) — bad for a
+frequently-polled health endpoint. Fixed by wrapping each check in
+`asyncio.wait_for(..., timeout=5.0)` via a new `_check_with_timeout`
+helper; re-verified the endpoint now returns in ~6s reporting
+`"degraded"` when a dependency is down.
+
+Rewrote `tests/test_health.py` (7 tests). Full suite 37/37 passing (one
+`test_auth.py` flaky test unrelated to this change, confirmed by
+isolation rerun). `ruff check .` and `ruff format --check` clean on both
+touched files. Pushed `feat/PHASE1-WEEK2-011-health-endpoint`; PR not
+opened (manual creation per established workflow).

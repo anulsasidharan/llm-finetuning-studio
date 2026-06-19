@@ -2,49 +2,36 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE1-WEEK3-006
-## TASK NAME: Frontend — Next.js root layout + sidebar + header
+## TASK ID: PHASE1-WEEK3-007
+## TASK NAME: Frontend — lib/api.ts typed axios client
 ## STATUS: ⬜ TODO
 ## ASSIGNED PHASE: Phase 1, Week 3
-## BRANCH: feat/PHASE1-WEEK3-006-frontend-layout
+## BRANCH: feat/PHASE1-WEEK3-007-api-client
 
 ## OBJECTIVE
-Per CLAUDE.md section 2 directory structure / Week 3 checklist: build the
-dashboard shell that every later frontend page (datasets, methodology,
-config, training, evaluation, experiments, models, deploy) will render
-inside. `apps/frontend` currently only has the Next.js 14 default
-`app/layout.tsx` + `app/page.tsx` and a `components/ui/` (shadcn) set —
-no `(auth)`/`(dashboard)` route groups, no `components/layout/` exist
-yet. This task creates the dashboard route group's layout, sidebar, and
-header; it does NOT build auth pages, the dataset/methodology/etc. pages
-themselves, or wire real API calls (those are later Week 3/Phase 2
-tasks).
+Per CLAUDE.md section 2 (`apps/frontend/lib/api.ts`) and section 6's
+coding convention ("API calls: Typed axios client in `lib/api.ts` only"):
+build the single shared axios instance every later frontend task (useAuth,
+Dataset Studio, Config Builder, etc.) will call through. No page wires a
+real request yet — this task only builds the client itself.
 
 ## ACCEPTANCE CRITERIA (DRAFT — confirm against CLAUDE.md before starting)
-- [ ] `app/(dashboard)/layout.tsx` — wraps children with `Sidebar` +
-      `Header`, per CLAUDE.md section 2's directory tree
-- [ ] `app/(dashboard)/page.tsx` — minimal dashboard home placeholder
-      (real content is a later task)
-- [ ] `components/layout/Sidebar.tsx` — nav links for all module routes
-      listed in CLAUDE.md section 2 (onboarding, datasets, methodology,
-      config, gpu-selector, cost-estimator, training, evaluation,
-      experiments, models, deploy)
-- [ ] `components/layout/Header.tsx` — placeholder user/account area
-      (no real auth wiring yet — `useAuth` hook lands in
-      PHASE1-WEEK3-009)
-- [ ] `components/layout/Breadcrumb.tsx` + `components/layout/
-      PageContainer.tsx` — also named in CLAUDE.md section 2's
-      `layout/` directory; confirm with the user whether to build both
-      now or defer `Breadcrumb` until a page actually needs it (real
-      scope question — CLAUDE.md lists the file but no task has used it
-      yet)
-- [ ] Server vs Client: layout/page stay RSC by default; mark only the
-      interactive parts (e.g. a collapsible sidebar toggle, if any)
-      `"use client"`, per CLAUDE.md's coding conventions
-- [ ] Tailwind utilities only — no inline styles, per CLAUDE.md
-- [ ] `apps/frontend` lints/builds clean (`npm run lint`, `npm run
-      build` or equivalent — confirm exact scripts in
-      `apps/frontend/package.json` before running)
+- [ ] `lib/api.ts` — axios instance with `baseURL` from an env var
+      (`NEXT_PUBLIC_API_URL` or similar — check `.env.example` for the
+      existing convention before inventing a new var name)
+- [ ] Request interceptor attaching the JWT access token (storage
+      mechanism TBD — `useAuth`/token storage itself doesn't land until
+      PHASE1-WEEK3-009, so this task only needs a read-the-token hook
+      point, not the storage implementation)
+- [ ] Response interceptor / 401 handling strategy — confirm with the
+      user whether to stub this now (no-op or simple redirect-to-login)
+      or fully defer to PHASE1-WEEK3-009 (real scope question — don't
+      guess silently)
+- [ ] Typed per-endpoint helper functions matching CLAUDE.md section 5's
+      route table, or a thinner approach (confirm scope: full typed
+      client for every route now vs. base instance only, with endpoint
+      helpers added per-feature as each page lands)
+- [ ] `apps/frontend` lints/builds clean (`npm run lint`, `npm run build`)
 
 ## STEPS TO COMPLETE
 
@@ -52,63 +39,70 @@ tasks).
 ```
 git checkout develop
 git pull origin develop
-git checkout -b feat/PHASE1-WEEK3-006-frontend-layout
+git checkout -b feat/PHASE1-WEEK3-007-api-client
 ```
 
 ### Step 2 — Confirm scope with the user before writing code
-Resolve the `Breadcrumb`/`PageContainer` now-vs-defer question above,
-and confirm the sidebar's exact nav item list/icons/grouping if CLAUDE.md
-section 2 leaves any ambiguity.
+Resolve the 401-handling and full-vs-thin-client questions above.
 
-### Step 3 — Implement layout + components
+### Step 3 — Implement lib/api.ts
 
 ### Step 4 — Verify
-Check `apps/frontend/package.json` for the actual lint/build script
-names first (don't assume `npm run lint`/`npm run build` exist verbatim).
-Manually sanity-check the rendered shell via the dev server if feasible
-in this environment.
+`npm run lint` / `npm run build`. No real page consumes this yet, so
+verification is build/lint-level, not a rendered-page check.
 
 ### Step 5 — Stage, commit, push
 
 ### Step 6 — Update tracking files
 1. CURRENT_TASK.md → mark STATUS: ✅ COMPLETE, all criteria [x]
-2. DONE.md → add row for PHASE1-WEEK3-006
-3. BACKLOG.md → PHASE1-WEEK3-006 ✅ DONE
+2. DONE.md → add row for PHASE1-WEEK3-007
+3. BACKLOG.md → PHASE1-WEEK3-007 ✅ DONE
 4. MEMORY.md → update session log
-5. CURRENT_TASK.md → replace with next Week 3 task (PHASE1-WEEK3-007:
-   frontend lib/api.ts typed axios client)
+5. CURRENT_TASK.md → replace with next Week 3 task (PHASE1-WEEK3-008:
+   frontend types/index.ts shared types)
 
 ## BLOCKERS
-None yet identified — the Breadcrumb/PageContainer now-vs-defer question
-above needs a quick scope confirmation with the user before coding
-starts, same pattern as recent backend tasks.
+None yet identified — the 401-handling-strategy and full-vs-thin-client
+scope questions above need a quick confirmation with the user before
+coding starts, same pattern as recent tasks.
 
 ## NOTES FOR NEXT TASK
-**Backend Week 3 scope (PHASE1-WEEK3-001 through 005) is fully closed.**
-All remaining Week 3 tasks (006–013) are frontend-only and don't touch
-`apps/backend`.
+**Frontend dashboard shell (PHASE1-WEEK3-006) is done.** `app/(dashboard)/
+layout.tsx` wraps every future module page in `Sidebar` + `Header`;
+`components/layout/PageContainer.tsx` exists for page-level padding.
+`Breadcrumb.tsx` was deliberately deferred — build it only when a real
+page needs it, not preemptively.
 
-Still open from PHASE1-WEEK2-009 (optional, low priority): `core/auth.py`'s
-local `CREDENTIALS_EXCEPTION = HTTPException(401)` could be migrated to
-the `core/exceptions.py` `UnauthorizedError` hierarchy now that both the
-hierarchy and its FastAPI exception handler exist — not a hard
-requirement, just consistency cleanup.
+**Real bug fixed in PHASE1-WEEK3-006, worth knowing about:** `app/
+globals.css` was missing the shadcn neutral theme CSS variables
+(`--border`, `--muted`, `--primary`, `--card`, etc.) even though
+`components.json` declares `cssVariables: true` — every `ui/*` component
+was unstyled until this task became the first real consumer and the gap
+was fixed. If any `ui/*` component still looks unstyled in a later task,
+check `globals.css`'s `:root` / `@theme inline` blocks before assuming a
+new bug.
 
-Known unrelated issue (not in scope, just flagged): `fts_backend`'s
-Docker `start.sh` fails with `set: Illegal option -` on container start
-in this environment — looks like a CRLF line-ending issue from a Windows
-checkout corrupting a `set -euo pipefail` (or similar) line. Verification
-has been worked around by running the app locally via `uv run uvicorn`
-against host-mapped ports instead of inside the `fts_backend` container.
-Worth a dedicated fix-it task at some point.
+**`app/page.tsx` (the default create-next-app scaffold) was deleted** —
+`/` is now owned by `app/(dashboard)/page.tsx`. Don't recreate a bare
+`app/page.tsx`; it would conflict with the dashboard route group.
 
-**Gotcha, repeated across multiple sessions:** the PostToolUse lint/format
-hook auto-fixes "unused" imports between separate `Edit` calls on backend
-Python files — adding an import in one `Edit` and its only usage in a
-later, separate `Edit` lets the hook strip the import in between. Always
-add an import and its first usage in the same `Edit`/`Write` call. (Not
-yet confirmed whether an equivalent ESLint-on-save hook exists for the
-frontend — check `.claude/hooks/` before assuming it doesn't.)
+**Gotcha, repeated across multiple sessions, now confirmed to apply to
+the frontend half too:** the PostToolUse hook (`.claude/hooks/lint.py`)
+resolves paths relative to the Bash tool's current working directory —
+a bare `cd apps/frontend && cmd` (no subshell parens) leaks the cwd
+forward and breaks the hook on the next Edit/Write (it looks for
+`.claude/hooks/lint.py` relative to the leaked path). Always wrap
+`cd`-then-run in `(cd dir && cmd)`, or `cd` straight back to repo root
+immediately after a bare `cd`.
+
+**Gotcha, backend-specific, still relevant if this session also touches
+`apps/backend`:** the PostToolUse lint/format hook auto-fixes "unused"
+imports between separate `Edit` calls on backend Python files — adding
+an import in one `Edit` and its only usage in a later, separate `Edit`
+lets the hook strip the import in between. Always add an import and its
+first usage in the same `Edit`/`Write` call. Not yet confirmed whether
+ESLint's `--fix` (run by the same hook on `.ts`/`.tsx` files) has the
+same failure mode — watch for it.
 
 **LANDMINE, still unresolved (not relevant unless a future task touches
 `training_engine/datasets/loader.py`):** `training_engine/datasets/`
@@ -124,17 +118,17 @@ process/environment from `apps/backend`), port the logic into
 relevant to this frontend task, but keep in mind for any future backend
 work this session might also touch.
 
-## PREVIOUS TASK SUMMARY (PHASE1-WEEK3-005)
-Completed 2026-06-19. User chose minimal per-method required keys for
-training_config validation (over generic-only or strict full schema).
-Added `schemas/job.py` (`FineTuneJobCreate`/`FineTuneJobResponse`/
-`FineTuneJobConfigResponse`), `services/job_service.py`
-(`SUPPORTED_METHODOLOGIES`, `COMMON_REQUIRED_KEYS` +
-`METHOD_SPECIFIC_REQUIRED_KEYS` per methodology, `create_job` reusing
-`dataset_service.get_dataset` for `dataset_id` ownership checks,
-`list_jobs`/`get_job`), `api/v1/routes/jobs.py` (`POST /jobs`,
-`GET /jobs`, `GET /jobs/{id}`, `GET /jobs/{id}/config`, all
-`Depends(get_current_user)`). 16 new tests in `tests/test_job_routes.py`.
-Full suite 80/80 passing, ruff clean. Pushed
-`feat/PHASE1-WEEK3-005-job-creation`; PR not opened (manual creation per
-established workflow).
+## PREVIOUS TASK SUMMARY (PHASE1-WEEK3-006)
+Completed 2026-06-19. User chose to build `PageContainer` now and defer
+`Breadcrumb`. Added `app/(dashboard)/layout.tsx` + `page.tsx`,
+`components/layout/{Sidebar,Header,PageContainer}.tsx`. Sidebar covers
+all 12 CLAUDE.md module routes with lucide icons and active-link state
+via `usePathname`; Header has a placeholder account dropdown (no real
+auth). Fixed a real pre-existing gap: `globals.css` was missing the
+shadcn neutral theme CSS variables every `ui/*` component depends on —
+added the full token set. Deleted the default `app/page.tsx` scaffold
+since `app/(dashboard)/page.tsx` now owns `/`. Verified via a live
+`npm run dev` fetch (markup + compiled CSS inspection), not just
+build/lint. `npm run lint` and `npm run build` both clean. Pushed
+`feat/PHASE1-WEEK3-006-frontend-layout`; PR not opened (manual creation
+per established workflow).

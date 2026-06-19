@@ -2,45 +2,53 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE1-WEEK3-010
-## TASK NAME: Frontend — login + register pages with Zod validation
+## TASK ID: PHASE1-WEEK3-011
+## TASK NAME: Frontend — Dataset Studio page (upload + format + quality report)
 ## STATUS: ⬜ TODO
 ## ASSIGNED PHASE: Phase 1, Week 3
-## BRANCH: feat/PHASE1-WEEK3-010-auth-pages
+## BRANCH: feat/PHASE1-WEEK3-011-dataset-studio
 
 ## OBJECTIVE
-Per CLAUDE.md section 2 (`app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`,
-`app/(auth)/layout.tsx`) and section 6's TS conventions (RHF + Zod for forms):
-build the actual login and register pages that consume PHASE1-WEEK3-009's
-`useAuth` hook. This is the first page either route group has had — the
-`(auth)` route group directory doesn't exist yet.
+Per CLAUDE.md section 2 (`app/(dashboard)/datasets/page.tsx`,
+`app/(dashboard)/datasets/upload/page.tsx`, `app/(dashboard)/datasets/[datasetId]/page.tsx`,
+`components/dataset/DatasetUploader.tsx`, `FormatSelector.tsx`, `QualityReport.tsx`,
+`DatasetPreview.tsx`): build the Dataset Studio — list datasets, upload a new
+one, trigger format detection + quality check, and view the resulting report.
+This is the first page consuming the backend's dataset endpoints
+(`POST /datasets/upload`, `GET /datasets`, `POST /datasets/{id}/format`,
+`POST /datasets/{id}/quality-check`, `GET /datasets/{id}/preview` — note: a
+`GET /datasets/{id}/preview` route is listed in CLAUDE.md section 5 but does
+NOT exist in `apps/backend/api/v1/routes/datasets.py` yet, only
+upload/list/format/quality-check do — confirm scope on this gap before
+building `DatasetPreview.tsx`).
 
-## ACCEPTANCE CRITERIA (DRAFT — confirm against useAuth/backend before starting)
-- [ ] `app/(auth)/layout.tsx` — minimal layout for unauthenticated pages (no
-      Sidebar/Header from the dashboard shell)
-- [ ] `app/(auth)/login/page.tsx` — email + password form, React Hook Form +
-      Zod schema, calls `useAuth().login`, redirects to `/` on success, shows
-      a real error message on 401 (backend's `UnauthorizedError` detail)
-- [ ] `app/(auth)/register/page.tsx` — email + password + full_name form,
-      Zod schema mirroring backend's `UserRegister` (`password` min_length=8),
-      calls `useAuth().register`, then — decide: auto-login after register
-      (chain a `login` call with the same credentials, since `/register`
-      itself returns no tokens) vs. redirect to `/login` with a "registered,
-      please sign in" message. Real fork, not in useAuth's original scope —
-      confirm with the user.
-- [ ] Decide redirect target after login: dashboard home (`/`) vs. wherever
-      the user was trying to go (no "redirect back to intended page" logic
-      exists yet — confirm whether that's in scope now or deferred)
-- [ ] Wire actual navigation: once `/login` exists, double check
-      `lib/api.ts`'s 401-refresh-failure redirect (`window.location.href =
-      "/login"`, added PHASE1-WEEK3-009) actually lands somewhere real
+## ACCEPTANCE CRITERIA (DRAFT — confirm against the real backend before starting)
+- [ ] `app/(dashboard)/datasets/page.tsx` — lists the current user's datasets
+      (`GET /datasets`) with filename, format, row count, created date; empty
+      state when none exist
+- [ ] `app/(dashboard)/datasets/upload/page.tsx` + `components/dataset/DatasetUploader.tsx`
+      — file picker (`.json`/`.jsonl`), calls `POST /datasets/upload`
+      (multipart), redirects to the dataset detail page on success, surfaces
+      backend validation errors (oversized file, wrong content-type)
+- [ ] `app/(dashboard)/datasets/[datasetId]/page.tsx` — detail page: dataset
+      metadata, a "Detect format" action (`POST /datasets/{id}/format`), a
+      "Run quality check" action (`POST /datasets/{id}/quality-check`),
+      `components/dataset/QualityReport.tsx` rendering the persisted
+      `quality_report` JSON (`total_rows`, `duplicate_rows`, `word_count`,
+      `languages`)
+- [ ] `components/dataset/FormatSelector.tsx` — shows/confirms the detected
+      `format` (alpaca/sharegpt/chatml/unknown)
+- [ ] **Resolve the `GET /datasets/{id}/preview` gap above with the user
+      before building `DatasetPreview.tsx`** — route doesn't exist in the
+      backend yet; options are likely (a) skip preview for this task and flag
+      a backend follow-up, or (b) add the missing backend route as part of
+      this task. Don't guess — this is a real spec/implementation mismatch.
 - [ ] `apps/frontend` lints/builds clean (`npm run lint`, `npm run build`)
-- [ ] Manually verify the real login/register flow now that a page exists —
-      this task is the first one that CAN use an actual page render, unlike
-      PHASE1-WEEK3-009 which had no page to test against. If no browser tool
-      is available (confirmed absent as of PHASE1-WEEK3-009 — see MEMORY.md),
-      fall back to the documented Node-script-against-the-real-module
-      technique, or note explicitly what could not be verified.
+- [ ] Verify the real upload → format → quality-check flow against a locally
+      running backend (same pattern as PHASE1-WEEK3-009/010 — no browser tool
+      available, fall back to fetching rendered HTML + curl + a temporary
+      Node script against the real module if interactive verification is
+      needed)
 
 ## STEPS TO COMPLETE
 
@@ -48,81 +56,85 @@ build the actual login and register pages that consume PHASE1-WEEK3-009's
 ```
 git checkout develop
 git pull origin develop
-git checkout -b feat/PHASE1-WEEK3-010-auth-pages
+git checkout -b feat/PHASE1-WEEK3-011-dataset-studio
 ```
 
 ### Step 2 — Confirm scope with the user before writing code
-Resolve the two flagged forks above: (1) auto-login after register vs.
-redirect-to-login-with-message, (2) whether "redirect back to intended page"
-is in scope for this task or deferred.
+Resolve the `GET /datasets/{id}/preview` mismatch flagged above. Check
+whether any other CLAUDE.md-listed route/component for this task is missing
+from the real backend before assuming it exists.
 
-### Step 3 — Implement layout + both pages + Zod schemas
+### Step 3 — Implement pages + components
 
 ### Step 4 — Verify
-`npm run lint` / `npm run build`. Exercise the actual rendered pages this
-time (first task that can). Note in the session log exactly how this was
-done.
+`npm run lint` / `npm run build`. Exercise the real flow against a locally
+running backend. Note in the session log exactly how this was done.
 
 ### Step 5 — Stage, commit, push
 
 ### Step 6 — Update tracking files
 1. CURRENT_TASK.md → mark STATUS: ✅ COMPLETE, all criteria [x]
-2. DONE.md → add row for PHASE1-WEEK3-010
-3. BACKLOG.md → PHASE1-WEEK3-010 ✅ DONE
+2. DONE.md → add row for PHASE1-WEEK3-011
+3. BACKLOG.md → PHASE1-WEEK3-011 ✅ DONE
 4. MEMORY.md → update session log
-5. CURRENT_TASK.md → replace with next Week 3 task (PHASE1-WEEK3-011:
-   Dataset Studio page — upload + format + quality report)
+5. CURRENT_TASK.md → replace with next Week 3 task (PHASE1-WEEK3-012:
+   Training Config Builder skeleton)
 
 ## BLOCKERS
-None yet identified — the two scope questions above need confirmation with
-the user before coding starts, same pattern as recent tasks.
+None yet identified — the `GET /datasets/{id}/preview` route gap (see
+OBJECTIVE) needs confirmation with the user before `DatasetPreview.tsx` work
+starts, same pattern as recent tasks.
 
 ## NOTES FOR NEXT TASK
 
-**`hooks/useAuth.ts` (PHASE1-WEEK3-009) is done.** `useAuth()` returns
-`{ user, isLoadingUser, isAuthenticated, login, isLoggingIn, loginError,
-register, isRegistering, registerError, logout }`. `login`/`register` are
-`mutateAsync` functions (throw on failure, so wrap in try/catch or check
-`loginError`/`registerError` from the hook). `login` takes
-`{ email, password }`; `register` takes `{ email, password, full_name }`
-matching backend's `UserRegister` exactly — note `register` does NOT log
-the user in (the backend endpoint returns `UserResponse`, not tokens), so
-this task must decide what happens right after a successful register.
+**`app/(auth)/login` and `app/(auth)/register` (PHASE1-WEEK3-010) are done.**
+Login/register pages exist and work end-to-end against the real backend;
+`lib/api.ts`'s 401-refresh-failure redirect now carries a `?next=` param back
+to whatever protected page the user was trying to reach. Any future
+protected page that wants a "redirect here after login" experience already
+gets it for free via the existing interceptor — no new wiring needed.
 
-**Refresh token storage + 401 handling decided in PHASE1-WEEK3-009:**
-refresh token lives in `localStorage` under `fts_refresh_token` (NOT an
-httpOnly cookie — deviates from ARCHITECTURE.md's diagram, see MEMORY.md's
-ARCHITECTURE DECISIONS for why). `lib/api.ts`'s response interceptor does
-silent refresh-and-retry on 401 and falls back to
-`window.location.href = "/login"` on refresh failure — **this task is what
-makes that redirect actually land somewhere**, since `/login` doesn't exist
-until now.
+**Dataset backend endpoints that exist today** (`apps/backend/api/v1/routes/datasets.py`,
+built PHASE1-WEEK3-001/004): `POST /datasets/upload`, `GET /datasets`,
+`POST /datasets/{id}/format`, `POST /datasets/{id}/quality-check`. There is
+**no** `GET /datasets/{id}` (single-dataset fetch) or `GET /datasets/{id}/preview`
+route yet, despite both being implied by CLAUDE.md's directory structure /
+route table. The detail page route
+(`app/(dashboard)/datasets/[datasetId]/page.tsx`) will need *some* way to
+fetch one dataset's current state (e.g. after running format/quality-check)
+— check whether `GET /datasets` (list) is enough to refetch-and-filter
+client-side, or whether a new single-dataset backend route is actually
+needed. Flag this explicitly with the user rather than assuming.
 
-**`app/providers.tsx` (`QueryClientProvider`) now wraps the whole app**
-(wired into `app/layout.tsx` in PHASE1-WEEK3-009) — any `useQuery`/
-`useMutation` in this task's pages will work without additional setup.
+**`types/index.ts`'s `DatasetResponse`** (PHASE1-WEEK3-008) is generated from
+the live OpenAPI spec and already includes `format`, `quality_report` (typed
+as `Record<string, unknown>`), `row_count`, etc. — use it as-is; don't
+hand-roll a parallel type.
 
 **No browser-automation tool is available in this environment** (confirmed
-via `ToolSearch` during PHASE1-WEEK3-009). PHASE1-WEEK3-009 verified
-client-only logic via direct backend `curl` calls plus a temporary
-`node --experimental-strip-types` script (written, run, deleted before
-committing) that imported the real module with a minimal `window`/
-`localStorage` shim. This task is the first that produces an actual
-rendered page — fetching the page's initial server-rendered HTML over HTTP
-(the technique used successfully in PHASE1-WEEK3-006) will show the static
-form markup, but exercising the interactive submit→login→redirect flow
-will likely need the same temporary-script fallback unless a browser tool
-becomes available. Say explicitly what was/wasn't verified.
+repeatedly through PHASE1-WEEK3-009/010). The established fallback: fetch
+server-rendered HTML over `curl` for static markup, `curl` the real backend
+directly to confirm live API contracts, and — only if a genuinely
+interactive/client-only path needs proving — a temporary
+`node --experimental-strip-types` script (written, run, then deleted before
+committing) importing the real module with a minimal `window`/`localStorage`
+shim.
 
 **Gotcha, repeated across many sessions:** the PostToolUse hook
-(`.claude/hooks/lint.py`) resolves paths relative to the Bash tool's
-current working directory — a bare `cd apps/frontend && cmd` (no subshell
-parens) leaks the cwd forward and breaks the hook on the next Edit/Write,
-and also breaks relative-path shell commands (`rm`, `git status` showing
-unexpectedly short paths) run afterward in the same session. Confirmed yet
-again during PHASE1-WEEK3-009. Always wrap `cd`-then-run in
-`(cd dir && cmd)`, or `cd` straight back to repo root immediately after a
-bare `cd`.
+(`.claude/hooks/lint.py`) resolves paths relative to the Bash tool's current
+working directory — a bare `cd apps/frontend && cmd` (no subshell parens)
+leaks the cwd forward and breaks the hook on the next Edit/Write, and also
+breaks relative-path shell commands run afterward in the same session.
+Confirmed yet again during PHASE1-WEEK3-010 (a bare `cd ... && grep`).
+Always wrap `cd`-then-run in `(cd dir && cmd)`, or `cd` straight back to repo
+root immediately after a bare `cd`.
+
+**Gotcha, environment-specific:** Docker containers (`fts_postgres`,
+`fts_redis`, `fts_minio`, etc.) are NOT running by default in this dev
+environment between sessions — check `docker ps -a` before assuming they're
+up, bring up only what's needed (`docker compose up -d postgres redis minio`),
+and stop them again at the end of the session to restore the pre-session
+state (confirmed via `docker ps -a` both before and after).
 
 **Gotcha, backend-specific:** the PostToolUse lint/format hook auto-fixes
 "unused" imports between separate `Edit` calls on backend Python files —
@@ -134,23 +146,21 @@ collides by name with the pip-installed `datasets==2.19.0` (HuggingFace)
 library in `training_engine/requirements.txt`. Resolve before any future
 `loader.py` work.
 
-## PREVIOUS TASK SUMMARY (PHASE1-WEEK3-009)
+## PREVIOUS TASK SUMMARY (PHASE1-WEEK3-010)
 Completed 2026-06-19. User confirmed two scope questions before coding: (1)
-refresh-token storage — localStorage (`fts_refresh_token`) over
-ARCHITECTURE.md's httpOnly-cookie diagram, since the backend's `/auth/refresh`
-takes the token in the JSON body with no cookie code anywhere; (2) 401
-handling — silent refresh-and-retry over a bare redirect. Built
-`hooks/useAuth.ts` (TanStack Query wrapping login/register/logout/me),
-rewrote `lib/api.ts`'s response interceptor with a single-flight
-refresh-and-retry, added `app/providers.tsx` (`QueryClientProvider`, first
-real wiring of `@tanstack/react-query`), and extracted `Header`'s account
-dropdown into a new `AccountMenu` client component wired to real user data
-+ working sign-out. Verified via lint/build (clean), direct backend `curl`
-calls confirming the live API contract, and a temporary
-`node --experimental-strip-types` script (deleted before committing) that
-exercised the real interceptor code end-to-end against the live backend,
-proving the corrupted-access-token → silent-refresh → transparent-retry path
-genuinely works. No browser-automation tool is available in this
-environment — noted explicitly rather than claimed. Pushed
-`feat/PHASE1-WEEK3-009-use-auth`; PR not opened (manual creation per
-established workflow).
+post-register flow — auto-login with the submitted credentials (register
+returns no tokens) over redirect-to-login-with-a-message; (2) "redirect back
+to the intended page" — build it now, not deferred. Built the `(auth)` route
+group (`layout.tsx`, `login/page.tsx`, `register/page.tsx`) with RHF + Zod
+forms matching backend constraints exactly (`password.min(8)` on register),
+and extended `lib/api.ts`'s 401-refresh-failure redirect to carry a `?next=`
+param back to the page the user was trying to reach. Verified via lint/build
+(clean, both routes still static), fetching real server-rendered HTML,
+direct backend `curl` calls confirming the register→login chain and 401
+error-body shape, and a temporary `node --experimental-strip-types` script
+(deleted before committing) proving the new `next`-param redirect logic
+works end-to-end against the real `lib/api.ts` module. No browser-automation
+tool is available in this environment — the interactive click-through
+inside the React components themselves was not directly exercised; noted
+explicitly. Pushed `feat/PHASE1-WEEK3-010-auth-pages`; PR not opened
+(manual creation per established workflow).

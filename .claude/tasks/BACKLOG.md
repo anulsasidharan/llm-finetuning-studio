@@ -34,7 +34,7 @@
 | PHASE1-WEEK3-002 | training_engine/datasets/formatter.py — Alpaca/ShareGPT/ChatML | ✅ DONE | — | feat/PHASE1-WEEK3-002-dataset-formatter |
 | PHASE1-WEEK3-003 | training_engine/datasets/quality_check.py — dedup, stats, language | ✅ DONE | — | feat/PHASE1-WEEK3-003-quality-check |
 | PHASE1-WEEK3-004 | POST /datasets/{id}/format + /quality-check endpoints | ✅ DONE | PHASE1-WEEK3-002 | feat/PHASE1-WEEK3-004-dataset-endpoints |
-| PHASE1-WEEK3-005 | Fine-tune job creation endpoint + config validation | ⬜ TODO | PHASE1-WEEK2-010 | feat/PHASE1-WEEK3-005-job-creation |
+| PHASE1-WEEK3-005 | Fine-tune job creation endpoint + config validation | ✅ DONE | PHASE1-WEEK2-010 | feat/PHASE1-WEEK3-005-job-creation |
 | PHASE1-WEEK3-006 | Frontend: Next.js root layout + sidebar + header | ⬜ TODO | PHASE1-WEEK1-001 | feat/PHASE1-WEEK3-006-frontend-layout |
 | PHASE1-WEEK3-007 | Frontend: lib/api.ts typed axios client | ⬜ TODO | PHASE1-WEEK3-006 | feat/PHASE1-WEEK3-007-api-client |
 | PHASE1-WEEK3-008 | Frontend: types/index.ts all shared types | ⬜ TODO | PHASE1-WEEK3-006 | feat/PHASE1-WEEK3-008-shared-types |

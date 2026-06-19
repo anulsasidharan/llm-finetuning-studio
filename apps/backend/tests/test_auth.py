@@ -28,7 +28,17 @@ def test_decode_token_raises_on_expired_token() -> None:
 
 def test_decode_token_raises_on_tampered_token() -> None:
     token = create_access_token({"sub": "user-123"})
-    tampered = token[:-1] + ("a" if token[-1] != "a" else "b")
+    # Tamper a character a few positions before the end, not the very last
+    # one: base64url's final character of a non-multiple-of-3-byte payload
+    # (HS256 signatures are 32 bytes) carries unused padding bits that some
+    # decoders ignore, so flipping only the last char has a real chance of
+    # producing a string that decodes to the identical signature bytes —
+    # i.e. it doesn't actually tamper anything, and decode_token correctly
+    # doesn't raise. A middle character has no such ambiguity.
+    pos = -5
+    original_char = token[pos]
+    replacement = "a" if original_char != "a" else "b"
+    tampered = token[: len(token) + pos] + replacement + token[len(token) + pos + 1 :]
     with pytest.raises(HTTPException) as exc_info:
         decode_token(tampered)
     assert exc_info.value.status_code == 401

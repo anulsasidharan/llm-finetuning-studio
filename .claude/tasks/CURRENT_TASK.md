@@ -2,37 +2,45 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE1-WEEK3-009
-## TASK NAME: Frontend — hooks/useAuth.ts with token refresh
+## TASK ID: PHASE1-WEEK3-010
+## TASK NAME: Frontend — login + register pages with Zod validation
 ## STATUS: ⬜ TODO
 ## ASSIGNED PHASE: Phase 1, Week 3
-## BRANCH: feat/PHASE1-WEEK3-009-use-auth
+## BRANCH: feat/PHASE1-WEEK3-010-auth-pages
 
 ## OBJECTIVE
-Per CLAUDE.md section 2 (`apps/frontend/hooks/useAuth`): build the auth hook
-that owns login/register/logout, JWT storage, and refresh — the piece
-`lib/api.ts` (PHASE1-WEEK3-007) and the dashboard `Header` (PHASE1-WEEK3-006)
-were both deliberately left stubbed out for.
+Per CLAUDE.md section 2 (`app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx`,
+`app/(auth)/layout.tsx`) and section 6's TS conventions (RHF + Zod for forms):
+build the actual login and register pages that consume PHASE1-WEEK3-009's
+`useAuth` hook. This is the first page either route group has had — the
+`(auth)` route group directory doesn't exist yet.
 
-## ACCEPTANCE CRITERIA (DRAFT — confirm against backend routes before starting)
-- [ ] `useAuth` hook (TanStack Query, per CLAUDE.md section 6 state conventions)
-      wrapping `POST /api/v1/auth/login`, `POST /api/v1/auth/register`,
-      `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `GET /api/v1/auth/me`
-- [ ] **MUST write the access token to the exact `fts_access_token` localStorage
-      key** that `lib/api.ts`'s `getAccessToken()` already reads from
-      (PHASE1-WEEK3-007) — otherwise the axios request interceptor silently
-      stops attaching `Authorization`. Decide where the refresh token lives
-      (separate localStorage key vs. httpOnly cookie — note ARCHITECTURE.md's
-      AUTH FLOW diagram says httpOnly cookie, but `lib/api.ts` was built
-      against localStorage; this mismatch needs a real decision, not a guess)
-- [ ] Wire real 401 handling into `lib/api.ts`'s response interceptor (currently
-      a bare pass-through, intentionally left for this task — should it
-      attempt a silent refresh-and-retry, or just redirect to `/login`?)
-- [ ] Use the typed `UserResponse`/`TokenResponse` types from
-      `apps/frontend/types/index.ts` (PHASE1-WEEK3-008, now done) instead of `any`
-- [ ] Wire the dashboard `Header`'s placeholder account dropdown (currently
-      all items `disabled`, per PHASE1-WEEK3-006) to real user data + sign-out
+## ACCEPTANCE CRITERIA (DRAFT — confirm against useAuth/backend before starting)
+- [ ] `app/(auth)/layout.tsx` — minimal layout for unauthenticated pages (no
+      Sidebar/Header from the dashboard shell)
+- [ ] `app/(auth)/login/page.tsx` — email + password form, React Hook Form +
+      Zod schema, calls `useAuth().login`, redirects to `/` on success, shows
+      a real error message on 401 (backend's `UnauthorizedError` detail)
+- [ ] `app/(auth)/register/page.tsx` — email + password + full_name form,
+      Zod schema mirroring backend's `UserRegister` (`password` min_length=8),
+      calls `useAuth().register`, then — decide: auto-login after register
+      (chain a `login` call with the same credentials, since `/register`
+      itself returns no tokens) vs. redirect to `/login` with a "registered,
+      please sign in" message. Real fork, not in useAuth's original scope —
+      confirm with the user.
+- [ ] Decide redirect target after login: dashboard home (`/`) vs. wherever
+      the user was trying to go (no "redirect back to intended page" logic
+      exists yet — confirm whether that's in scope now or deferred)
+- [ ] Wire actual navigation: once `/login` exists, double check
+      `lib/api.ts`'s 401-refresh-failure redirect (`window.location.href =
+      "/login"`, added PHASE1-WEEK3-009) actually lands somewhere real
 - [ ] `apps/frontend` lints/builds clean (`npm run lint`, `npm run build`)
+- [ ] Manually verify the real login/register flow now that a page exists —
+      this task is the first one that CAN use an actual page render, unlike
+      PHASE1-WEEK3-009 which had no page to test against. If no browser tool
+      is available (confirmed absent as of PHASE1-WEEK3-009 — see MEMORY.md),
+      fall back to the documented Node-script-against-the-real-module
+      technique, or note explicitly what could not be verified.
 
 ## STEPS TO COMPLETE
 
@@ -40,33 +48,30 @@ were both deliberately left stubbed out for.
 ```
 git checkout develop
 git pull origin develop
-git checkout -b feat/PHASE1-WEEK3-009-use-auth
+git checkout -b feat/PHASE1-WEEK3-010-auth-pages
 ```
 
 ### Step 2 — Confirm scope with the user before writing code
-Resolve the two flagged forks above: (1) refresh-token storage location
-(localStorage key vs. httpOnly cookie — real mismatch between
-ARCHITECTURE.md and the already-built `lib/api.ts`), (2) 401 interceptor
-behavior (silent refresh-and-retry vs. redirect-to-login).
+Resolve the two flagged forks above: (1) auto-login after register vs.
+redirect-to-login-with-message, (2) whether "redirect back to intended page"
+is in scope for this task or deferred.
 
-### Step 3 — Implement useAuth + wire Header + 401 interceptor
+### Step 3 — Implement layout + both pages + Zod schemas
 
 ### Step 4 — Verify
-`npm run lint` / `npm run build`. If a login page doesn't exist yet
-(it doesn't — that's PHASE1-WEEK3-010), verify by exercising the hook's
-logic against the live backend some other way (e.g. a temporary test page,
-or unit-level testing of the hook) — note in the session log how this was
-actually verified.
+`npm run lint` / `npm run build`. Exercise the actual rendered pages this
+time (first task that can). Note in the session log exactly how this was
+done.
 
 ### Step 5 — Stage, commit, push
 
 ### Step 6 — Update tracking files
 1. CURRENT_TASK.md → mark STATUS: ✅ COMPLETE, all criteria [x]
-2. DONE.md → add row for PHASE1-WEEK3-009
-3. BACKLOG.md → PHASE1-WEEK3-009 ✅ DONE
+2. DONE.md → add row for PHASE1-WEEK3-010
+3. BACKLOG.md → PHASE1-WEEK3-010 ✅ DONE
 4. MEMORY.md → update session log
-5. CURRENT_TASK.md → replace with next Week 3 task (PHASE1-WEEK3-010:
-   login + register pages with Zod validation)
+5. CURRENT_TASK.md → replace with next Week 3 task (PHASE1-WEEK3-011:
+   Dataset Studio page — upload + format + quality report)
 
 ## BLOCKERS
 None yet identified — the two scope questions above need confirmation with
@@ -74,59 +79,50 @@ the user before coding starts, same pattern as recent tasks.
 
 ## NOTES FOR NEXT TASK
 
-**`types/index.ts` (PHASE1-WEEK3-008) is done — and the codegen pipeline
-behind it is now a standing pattern, not a one-off.** Decided with the user:
-generate types from the live OpenAPI spec rather than hand-write them.
-Pipeline: `apps/backend/scripts/export_openapi.py` (`uv run python
-scripts/export_openapi.py` from `apps/backend`) dumps `app.openapi()` to
-`apps/frontend/openapi/schema.json` → `npm run generate:types` (in
-`apps/frontend`, wraps `openapi-typescript ./openapi/schema.json -o
-./types/api-schema.d.ts --empty-objects-unknown`) produces
-`types/api-schema.d.ts` → `types/index.ts` re-exports clean aliases
-(`UserResponse`, `TokenResponse`, `DatasetResponse`, `FineTuneJobResponse`,
-`FineTuneJobConfigResponse`) plus derived literal-union types
-(`DatasetFormat`, `FineTuneJobStatus`, `Methodology`) indexed off those
-response types. **Both `openapi/schema.json` and `types/api-schema.d.ts`
-are committed to git** (not gitignored) — CI/build never runs the backend,
-so these are committed snapshots regenerated by hand whenever a backend
-Pydantic schema changes, the same "generate once, commit, rerun on change"
-pattern this repo already uses for Alembic migrations. **If this task (or
-any future task) adds/changes a backend response schema, rerun both
-generation steps and commit the diff** — `types/index.ts` itself rarely
-needs hand-editing once a new schema exists, just add the re-export line.
+**`hooks/useAuth.ts` (PHASE1-WEEK3-009) is done.** `useAuth()` returns
+`{ user, isLoadingUser, isAuthenticated, login, isLoggingIn, loginError,
+register, isRegistering, registerError, logout }`. `login`/`register` are
+`mutateAsync` functions (throw on failure, so wrap in try/catch or check
+`loginError`/`registerError` from the hook). `login` takes
+`{ email, password }`; `register` takes `{ email, password, full_name }`
+matching backend's `UserRegister` exactly — note `register` does NOT log
+the user in (the backend endpoint returns `UserResponse`, not tokens), so
+this task must decide what happens right after a successful register.
 
-**Backend schemas/job.py and schemas/dataset.py were tightened from `str` to
-`Literal[...]` in PHASE1-WEEK3-008** (`Methodology`, `JobStatus` in
-`schemas/job.py`; `DatasetFormat` in `schemas/dataset.py`) specifically so
-OpenAPI emits real enums for codegen — this is now actual Pydantic-layer
-validation (422 on an invalid value), not just a frontend type annotation.
-`JobStatus` is `pending | queued | running | completed | failed | cancelled`
-— note only `"pending"` is ever actually set by code today
-(`job_service.JOB_STATUS_PENDING`); the other five values are aspirational
-until the training pipeline (Phase 2) actually sets them, but are now
-type-safe to use once it does.
+**Refresh token storage + 401 handling decided in PHASE1-WEEK3-009:**
+refresh token lives in `localStorage` under `fts_refresh_token` (NOT an
+httpOnly cookie — deviates from ARCHITECTURE.md's diagram, see MEMORY.md's
+ARCHITECTURE DECISIONS for why). `lib/api.ts`'s response interceptor does
+silent refresh-and-retry on 401 and falls back to
+`window.location.href = "/login"` on refresh failure — **this task is what
+makes that redirect actually land somewhere**, since `/login` doesn't exist
+until now.
 
-**`lib/api.ts` (PHASE1-WEEK3-007) is done.** Base axios instance at
-`apps/frontend/lib/api.ts`, `baseURL` from `NEXT_PUBLIC_API_URL`. Request
-interceptor reads a JWT from `window.localStorage.getItem("fts_access_token")`
-via `getAccessToken()` and attaches `Authorization: Bearer <token>` when
-present. Response interceptor is a bare pass-through — no real 401 handling
-yet (this task's job). **This task MUST write the access token to that exact
-same `fts_access_token` localStorage key**, or the interceptor silently stops
-attaching the header.
+**`app/providers.tsx` (`QueryClientProvider`) now wraps the whole app**
+(wired into `app/layout.tsx` in PHASE1-WEEK3-009) — any `useQuery`/
+`useMutation` in this task's pages will work without additional setup.
 
-**Frontend dashboard shell (PHASE1-WEEK3-006) is done.** `app/(dashboard)/
-layout.tsx` wraps every future module page in `Sidebar` + `Header`. Header's
-account dropdown is currently a disabled placeholder — this task is where it
-gets wired to real data.
+**No browser-automation tool is available in this environment** (confirmed
+via `ToolSearch` during PHASE1-WEEK3-009). PHASE1-WEEK3-009 verified
+client-only logic via direct backend `curl` calls plus a temporary
+`node --experimental-strip-types` script (written, run, deleted before
+committing) that imported the real module with a minimal `window`/
+`localStorage` shim. This task is the first that produces an actual
+rendered page — fetching the page's initial server-rendered HTML over HTTP
+(the technique used successfully in PHASE1-WEEK3-006) will show the static
+form markup, but exercising the interactive submit→login→redirect flow
+will likely need the same temporary-script fallback unless a browser tool
+becomes available. Say explicitly what was/wasn't verified.
 
-**Gotcha, repeated across multiple sessions:** the PostToolUse hook
-(`.claude/hooks/lint.py`) resolves paths relative to the Bash tool's current
-working directory — a bare `cd apps/frontend && cmd` (no subshell parens)
-leaks the cwd forward and breaks the hook on the next Edit/Write. Always
-wrap `cd`-then-run in `(cd dir && cmd)`, or `cd` straight back to repo root
-immediately after a bare `cd`. Confirmed again this session (twice) during
-PHASE1-WEEK3-008 — recovered both times with a plain `cd` back to repo root.
+**Gotcha, repeated across many sessions:** the PostToolUse hook
+(`.claude/hooks/lint.py`) resolves paths relative to the Bash tool's
+current working directory — a bare `cd apps/frontend && cmd` (no subshell
+parens) leaks the cwd forward and breaks the hook on the next Edit/Write,
+and also breaks relative-path shell commands (`rm`, `git status` showing
+unexpectedly short paths) run afterward in the same session. Confirmed yet
+again during PHASE1-WEEK3-009. Always wrap `cd`-then-run in
+`(cd dir && cmd)`, or `cd` straight back to repo root immediately after a
+bare `cd`.
 
 **Gotcha, backend-specific:** the PostToolUse lint/format hook auto-fixes
 "unused" imports between separate `Edit` calls on backend Python files —
@@ -138,22 +134,23 @@ collides by name with the pip-installed `datasets==2.19.0` (HuggingFace)
 library in `training_engine/requirements.txt`. Resolve before any future
 `loader.py` work.
 
-## PREVIOUS TASK SUMMARY (PHASE1-WEEK3-008)
+## PREVIOUS TASK SUMMARY (PHASE1-WEEK3-009)
 Completed 2026-06-19. User confirmed two scope questions before coding: (1)
-hand-write vs. generate types from OpenAPI — user chose **generate from
-OpenAPI**; (2) given `FineTuneJob.status` had no real backend constraint
-(only `"pending"` ever set in code), whether to type it as a literal union
-anyway — user chose **yes**, which required a follow-up confirmation to
-actually tighten `schemas/job.py`/`schemas/dataset.py` to `Literal[...]` types
-(approved) so the OpenAPI spec emits enums for codegen instead of a
-frontend-only override that could drift from the live spec. Built
-`apps/backend/scripts/export_openapi.py` (dumps `app.openapi()` to
-`apps/frontend/openapi/schema.json`), wired `npm run generate:types`
-(`openapi-typescript` with `--empty-objects-unknown`) to produce
-`apps/frontend/types/api-schema.d.ts`, and wrote `types/index.ts` re-exporting
-`UserResponse`/`TokenResponse`/`DatasetResponse`/`FineTuneJobResponse`/
-`FineTuneJobConfigResponse` plus derived `DatasetFormat`/`FineTuneJobStatus`/
-`Methodology` literal types. Backend: 80/80 tests pass, ruff clean. Frontend:
-`npm run lint` clean, `npm run build` compiled successfully. Pushed
-`feat/PHASE1-WEEK3-008-shared-types`; PR not opened (manual creation per
+refresh-token storage — localStorage (`fts_refresh_token`) over
+ARCHITECTURE.md's httpOnly-cookie diagram, since the backend's `/auth/refresh`
+takes the token in the JSON body with no cookie code anywhere; (2) 401
+handling — silent refresh-and-retry over a bare redirect. Built
+`hooks/useAuth.ts` (TanStack Query wrapping login/register/logout/me),
+rewrote `lib/api.ts`'s response interceptor with a single-flight
+refresh-and-retry, added `app/providers.tsx` (`QueryClientProvider`, first
+real wiring of `@tanstack/react-query`), and extracted `Header`'s account
+dropdown into a new `AccountMenu` client component wired to real user data
++ working sign-out. Verified via lint/build (clean), direct backend `curl`
+calls confirming the live API contract, and a temporary
+`node --experimental-strip-types` script (deleted before committing) that
+exercised the real interceptor code end-to-end against the live backend,
+proving the corrupted-access-token → silent-refresh → transparent-retry path
+genuinely works. No browser-automation tool is available in this
+environment — noted explicitly rather than claimed. Pushed
+`feat/PHASE1-WEEK3-009-use-auth`; PR not opened (manual creation per
 established workflow).

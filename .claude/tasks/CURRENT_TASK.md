@@ -2,35 +2,33 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE1-WEEK3-007
-## TASK NAME: Frontend — lib/api.ts typed axios client
+## TASK ID: PHASE1-WEEK3-008
+## TASK NAME: Frontend — types/index.ts shared types
 ## STATUS: ⬜ TODO
 ## ASSIGNED PHASE: Phase 1, Week 3
-## BRANCH: feat/PHASE1-WEEK3-007-api-client
+## BRANCH: feat/PHASE1-WEEK3-008-shared-types
 
 ## OBJECTIVE
-Per CLAUDE.md section 2 (`apps/frontend/lib/api.ts`) and section 6's
-coding convention ("API calls: Typed axios client in `lib/api.ts` only"):
-build the single shared axios instance every later frontend task (useAuth,
-Dataset Studio, Config Builder, etc.) will call through. No page wires a
-real request yet — this task only builds the client itself.
+Per CLAUDE.md section 2 (`apps/frontend/types/index.ts`): build the shared
+TypeScript types every later frontend task (useAuth, Dataset Studio, Config
+Builder, job pages, etc.) will import. These should mirror the backend's
+Pydantic response schemas so the typed axios client (`lib/api.ts`, built in
+PHASE1-WEEK3-007) and TanStack Query hooks have real types to work against
+instead of `any`.
 
-## ACCEPTANCE CRITERIA (DRAFT — confirm against CLAUDE.md before starting)
-- [ ] `lib/api.ts` — axios instance with `baseURL` from an env var
-      (`NEXT_PUBLIC_API_URL` or similar — check `.env.example` for the
-      existing convention before inventing a new var name)
-- [ ] Request interceptor attaching the JWT access token (storage
-      mechanism TBD — `useAuth`/token storage itself doesn't land until
-      PHASE1-WEEK3-009, so this task only needs a read-the-token hook
-      point, not the storage implementation)
-- [ ] Response interceptor / 401 handling strategy — confirm with the
-      user whether to stub this now (no-op or simple redirect-to-login)
-      or fully defer to PHASE1-WEEK3-009 (real scope question — don't
-      guess silently)
-- [ ] Typed per-endpoint helper functions matching CLAUDE.md section 5's
-      route table, or a thinner approach (confirm scope: full typed
-      client for every route now vs. base instance only, with endpoint
-      helpers added per-feature as each page lands)
+## ACCEPTANCE CRITERIA (DRAFT — confirm against CLAUDE.md / backend schemas before starting)
+- [ ] `types/index.ts` — types mirroring every backend Pydantic response
+      schema that exists today: `UserResponse`, `TokenResponse` (schemas/auth.py),
+      `DatasetResponse` (schemas/dataset.py), `FineTuneJobResponse` +
+      `FineTuneJobConfigResponse` (schemas/job.py)
+- [ ] Decide and confirm with the user: hand-write these types now (manual
+      sync risk with backend schemas) vs. generate them from the FastAPI
+      OpenAPI schema (more setup, but stays in sync automatically) — real
+      scope question, don't guess silently
+- [ ] Cover the enum-like string fields with real fields, not bare `string`
+      where the backend already constrains them — e.g. `FineTuneJob.status`,
+      `methodology` (six values per CLAUDE.md section 7), dataset format
+      (alpaca/sharegpt/chatml/unknown)
 - [ ] `apps/frontend` lints/builds clean (`npm run lint`, `npm run build`)
 
 ## STEPS TO COMPLETE
@@ -39,34 +37,49 @@ real request yet — this task only builds the client itself.
 ```
 git checkout develop
 git pull origin develop
-git checkout -b feat/PHASE1-WEEK3-007-api-client
+git checkout -b feat/PHASE1-WEEK3-008-shared-types
 ```
 
 ### Step 2 — Confirm scope with the user before writing code
-Resolve the 401-handling and full-vs-thin-client questions above.
+Resolve the hand-write-vs-generate-from-OpenAPI question above. Read the
+actual backend schema files (`apps/backend/schemas/{auth,dataset,job}.py`)
+and the ORM models backing them before drafting fields, so the TS types are
+accurate, not guessed.
 
-### Step 3 — Implement lib/api.ts
+### Step 3 — Implement types/index.ts
 
 ### Step 4 — Verify
-`npm run lint` / `npm run build`. No real page consumes this yet, so
-verification is build/lint-level, not a rendered-page check.
+`npm run lint` / `npm run build`. No real page consumes these yet beyond
+type-checking, so verification is build/lint-level.
 
 ### Step 5 — Stage, commit, push
 
 ### Step 6 — Update tracking files
 1. CURRENT_TASK.md → mark STATUS: ✅ COMPLETE, all criteria [x]
-2. DONE.md → add row for PHASE1-WEEK3-007
-3. BACKLOG.md → PHASE1-WEEK3-007 ✅ DONE
+2. DONE.md → add row for PHASE1-WEEK3-008
+3. BACKLOG.md → PHASE1-WEEK3-008 ✅ DONE
 4. MEMORY.md → update session log
-5. CURRENT_TASK.md → replace with next Week 3 task (PHASE1-WEEK3-008:
-   frontend types/index.ts shared types)
+5. CURRENT_TASK.md → replace with next Week 3 task (PHASE1-WEEK3-009:
+   frontend hooks/useAuth.ts with token refresh)
 
 ## BLOCKERS
-None yet identified — the 401-handling-strategy and full-vs-thin-client
-scope questions above need a quick confirmation with the user before
-coding starts, same pattern as recent tasks.
+None yet identified — the hand-write-vs-generate scope question above needs
+a quick confirmation with the user before coding starts, same pattern as
+recent tasks.
 
 ## NOTES FOR NEXT TASK
+**`lib/api.ts` (PHASE1-WEEK3-007) is done.** Base axios instance at
+`apps/frontend/lib/api.ts`, `baseURL` from `NEXT_PUBLIC_API_URL`. Request
+interceptor reads a JWT from `window.localStorage.getItem("fts_access_token")`
+via `getAccessToken()` and attaches `Authorization: Bearer <token>` when
+present. Response interceptor is a bare pass-through — no real 401 handling
+yet. **`useAuth` (PHASE1-WEEK3-009) MUST write the access token to that exact
+same `fts_access_token` localStorage key**, or the interceptor silently stops
+attaching the header. No per-endpoint typed helper functions exist in
+`lib/api.ts` yet (user chose base-instance-only scope) — add them per-feature
+as each page lands, now that this task's shared types exist to type response
+bodies against.
+
 **Frontend dashboard shell (PHASE1-WEEK3-006) is done.** `app/(dashboard)/
 layout.tsx` wraps every future module page in `Sidebar` + `Header`;
 `components/layout/PageContainer.tsx` exists for page-level padding.
@@ -118,17 +131,15 @@ process/environment from `apps/backend`), port the logic into
 relevant to this frontend task, but keep in mind for any future backend
 work this session might also touch.
 
-## PREVIOUS TASK SUMMARY (PHASE1-WEEK3-006)
-Completed 2026-06-19. User chose to build `PageContainer` now and defer
-`Breadcrumb`. Added `app/(dashboard)/layout.tsx` + `page.tsx`,
-`components/layout/{Sidebar,Header,PageContainer}.tsx`. Sidebar covers
-all 12 CLAUDE.md module routes with lucide icons and active-link state
-via `usePathname`; Header has a placeholder account dropdown (no real
-auth). Fixed a real pre-existing gap: `globals.css` was missing the
-shadcn neutral theme CSS variables every `ui/*` component depends on —
-added the full token set. Deleted the default `app/page.tsx` scaffold
-since `app/(dashboard)/page.tsx` now owns `/`. Verified via a live
-`npm run dev` fetch (markup + compiled CSS inspection), not just
-build/lint. `npm run lint` and `npm run build` both clean. Pushed
-`feat/PHASE1-WEEK3-006-frontend-layout`; PR not opened (manual creation
-per established workflow).
+## PREVIOUS TASK SUMMARY (PHASE1-WEEK3-007)
+Completed 2026-06-19. User confirmed two scope questions before coding: (1)
+401 handling — no-op pass-through for now, real redirect/refresh deferred to
+PHASE1-WEEK3-009's `useAuth`; (2) route coverage — base axios instance only,
+no per-endpoint helpers yet. Built `apps/frontend/lib/api.ts`: axios instance
+with `baseURL: process.env.NEXT_PUBLIC_API_URL`, `getAccessToken()` reading
+`window.localStorage["fts_access_token"]` (SSR-guarded), request interceptor
+attaching `Authorization: Bearer <token>`, pass-through response interceptor.
+No page consumes it yet — verified via `npm run lint` (clean) and `npm run
+build` (Turbopack, compiled successfully, TypeScript passing, `/` still the
+only static route). Pushed `feat/PHASE1-WEEK3-007-api-client`; PR not opened
+(manual creation per established workflow).

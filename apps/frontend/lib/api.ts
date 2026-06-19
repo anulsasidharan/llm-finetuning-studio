@@ -95,7 +95,11 @@ api.interceptors.response.use(
     } catch (refreshError) {
       clearTokens()
       if (typeof window !== "undefined") {
-        window.location.href = "/login"
+        const next = window.location.pathname + window.location.search
+        window.location.href =
+          next && next !== "/login"
+            ? `/login?next=${encodeURIComponent(next)}`
+            : "/login"
       }
       return Promise.reject(refreshError)
     }

@@ -1,8 +1,10 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
+
+DatasetFormat = Literal["alpaca", "sharegpt", "chatml", "unknown"]
 
 
 class DatasetResponse(BaseModel):
@@ -11,7 +13,7 @@ class DatasetResponse(BaseModel):
     id: UUID
     user_id: UUID
     name: str
-    format: str
+    format: DatasetFormat
     storage_path: str
     size_bytes: int
     row_count: int

@@ -1,13 +1,16 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+Methodology = Literal["sft", "lora", "qlora", "dpo", "orpo", "rlhf"]
+JobStatus = Literal["pending", "queued", "running", "completed", "failed", "cancelled"]
+
 
 class FineTuneJobCreate(BaseModel):
     base_model_id: str
-    methodology: str
+    methodology: Methodology
     training_config: dict[str, Any]
     dataset_id: UUID | None = None
     gpu_type: str | None = None
@@ -20,9 +23,9 @@ class FineTuneJobResponse(BaseModel):
     id: UUID
     user_id: UUID
     dataset_id: UUID | None
-    status: str
+    status: JobStatus
     base_model_id: str
-    methodology: str
+    methodology: Methodology
     training_config: dict[str, Any]
     gpu_type: str | None
     cloud_vendor: str | None

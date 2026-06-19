@@ -129,3 +129,22 @@ def test_me_unauthenticated_returns_401(client) -> None:
     response = client.get("/api/v1/auth/me")
 
     assert response.status_code == 401
+
+
+def test_logout_returns_204(client, emails_to_cleanup) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    access_token = create_access_token({"sub": user["id"]})
+
+    response = client.post(
+        "/api/v1/auth/logout", headers={"Authorization": f"Bearer {access_token}"}
+    )
+
+    assert response.status_code == 204
+
+
+def test_logout_unauthenticated_returns_401(client) -> None:
+    response = client.post("/api/v1/auth/logout")
+
+    assert response.status_code == 401

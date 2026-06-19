@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from core.auth import get_current_user
 from core.database import get_db
 from fastapi import APIRouter, Depends, File, UploadFile
@@ -25,3 +27,21 @@ async def list_datasets(
     db: AsyncSession = Depends(get_db),
 ) -> list[Dataset]:
     return await dataset_service.list_datasets(current_user, db)
+
+
+@router.post("/{dataset_id}/format", response_model=DatasetResponse)
+async def format_dataset(
+    dataset_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Dataset:
+    return await dataset_service.format_dataset(dataset_id, current_user, db)
+
+
+@router.post("/{dataset_id}/quality-check", response_model=DatasetResponse)
+async def quality_check_dataset(
+    dataset_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Dataset:
+    return await dataset_service.quality_check_dataset(dataset_id, current_user, db)

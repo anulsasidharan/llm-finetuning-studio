@@ -30,7 +30,7 @@
 ### Week 3 — Dataset + Config + Frontend Shell
 | ID | Task | Status | Depends On | Branch Name |
 |----|------|--------|------------|-------------|
-| PHASE1-WEEK3-001 | Dataset ORM service + upload endpoint | ⬜ TODO | PHASE1-WEEK2-007 | feat/PHASE1-WEEK3-001-dataset-upload |
+| PHASE1-WEEK3-001 | Dataset ORM service + upload endpoint | ✅ DONE | PHASE1-WEEK2-007 | feat/PHASE1-WEEK3-001-dataset-upload |
 | PHASE1-WEEK3-002 | training_engine/datasets/formatter.py — Alpaca/ShareGPT/ChatML | ⬜ TODO | — | feat/PHASE1-WEEK3-002-dataset-formatter |
 | PHASE1-WEEK3-003 | training_engine/datasets/quality_check.py — dedup, stats, language | ⬜ TODO | — | feat/PHASE1-WEEK3-003-quality-check |
 | PHASE1-WEEK3-004 | POST /datasets/{id}/format + /quality-check endpoints | ⬜ TODO | PHASE1-WEEK3-002 | feat/PHASE1-WEEK3-004-dataset-endpoints |

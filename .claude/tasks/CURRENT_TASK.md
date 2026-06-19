@@ -2,34 +2,43 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE1-WEEK3-001
-## TASK NAME: Dataset ORM service + upload endpoint
+## TASK ID: PHASE1-WEEK3-002
+## TASK NAME: training_engine/datasets/formatter.py — Alpaca/ShareGPT/ChatML
 ## STATUS: ⬜ TODO
 ## ASSIGNED PHASE: Phase 1, Week 3
-## BRANCH: feat/PHASE1-WEEK3-001-dataset-upload
+## BRANCH: feat/PHASE1-WEEK3-002-dataset-formatter
 
 ## OBJECTIVE
-Per CLAUDE.md section 5 (API ROUTES) and section 8 (Week 3 checklist):
-build the dataset upload flow — a `services/dataset_service.py` business-logic
-layer plus `POST /api/v1/datasets/upload` wiring file upload through
-`core/storage.py` (MinIO) and persisting a `Dataset` row (model already
-exists from PHASE1-WEEK2-003). This is the first Week 3 task; Week 2's
-backend-core backlog (PHASE1-WEEK2-001 through 013) is fully done.
+Per CLAUDE.md section 2 (training_engine/datasets/) and section 9
+(DATASET FORMATS): build `training_engine/datasets/formatter.py` that can
+detect and normalize the three supported dataset formats — Alpaca,
+ShareGPT, ChatML — from raw uploaded dataset rows (the rows produced by
+PHASE1-WEEK3-001's upload endpoint, currently stored with
+`Dataset.format = "unknown"`). This is a `training_engine` module, not a
+FastAPI route — the route wiring (`POST /datasets/{id}/format`) is a
+separate, later task (PHASE1-WEEK3-004).
 
 ## ACCEPTANCE CRITERIA (DRAFT — confirm against CLAUDE.md before starting)
-- [ ] `schemas/dataset.py` — request/response Pydantic models for upload
-- [ ] `services/dataset_service.py` — validates MIME type + size before
-      writing to storage (per CLAUDE.md section 6 "General" conventions),
-      uploads to MinIO via `core/storage.py`, creates the `Dataset` row
-- [ ] `api/v1/routes/datasets.py` — `POST /api/v1/datasets/upload`
-      (multipart file upload), `GET /api/v1/datasets` (list current user's
-      datasets); wire into `api/v1/api_router`
-- [ ] Requires JWT auth (`Depends(get_current_user)`) per CLAUDE.md section 6
-- [ ] Tests covering: successful upload, oversized file rejected, wrong
-      MIME type rejected, dataset row correctly linked to `user_id`
-- [ ] `uv run pytest -q` still passes (full suite)
-- [ ] `uv run ruff check .` and `uv run ruff format --check` pass on
-      touched files
+- [ ] `training_engine/datasets/formatter.py` — format detector + per-format
+      normalizer functions, e.g. `detect_format(row: dict) -> str` and
+      `to_chatml(row: dict, format: str) -> dict` (or similar — confirm
+      target shape with the user; CLAUDE.md doesn't specify a canonical
+      internal representation yet)
+- [ ] Recognizes the three shapes from CLAUDE.md section 9 exactly:
+      - alpaca: `{"instruction", "input", "output"}`
+      - sharegpt: `{"conversations": [{"from", "value"}, ...]}`
+      - chatml: `{"messages": [{"role", "content"}, ...]}`
+- [ ] Raises/handles unrecognized rows sensibly (confirm exact error
+      handling approach with the user — likely a `core.exceptions` type,
+      but `training_engine` doesn't currently depend on `apps/backend`'s
+      `core/` package, so check whether that import is even allowed
+      before assuming it)
+- [ ] Unit tests in `training_engine/tests/` (confirm dir exists/pattern)
+      covering: detection of each of the 3 formats, round-trip
+      normalization, and at least one malformed-row case
+- [ ] `uv run pytest -q` passes in `training_engine/`
+- [ ] `uv run ruff check .` and `uv run ruff format --check` pass in
+      `training_engine/` on touched files
 
 ## STEPS TO COMPLETE
 
@@ -37,20 +46,26 @@ backend-core backlog (PHASE1-WEEK2-001 through 013) is fully done.
 ```
 git checkout develop
 git pull origin develop
-git checkout -b feat/PHASE1-WEEK3-001-dataset-upload
+git checkout -b feat/PHASE1-WEEK3-002-dataset-formatter
 ```
 
-### Step 2 — Confirm scope against CLAUDE.md section 5's full dataset route
-list (`/datasets/{id}/format`, `/quality-check`, `/preview` are separate
-Week 3 tasks — PHASE1-WEEK3-002/003/004 — don't build those here)
+### Step 2 — Confirm scope with the user before writing code
+This task's acceptance criteria above is a DRAFT — `training_engine/`
+has no existing code to pattern-match against yet (this is the first
+task to touch it in Phase 1), so confirm: the exact function signatures,
+the canonical internal row shape (probably ChatML-style `messages`, since
+that's what `trl.SFTTrainer`/`DPOTrainer` generally expect, but confirm),
+and whether `training_engine` should depend on anything in
+`apps/backend/core/` (current architecture keeps them separate processes
+— probably not, but confirm) before implementing.
 
-### Step 3 — Implement schema + service + route
+### Step 3 — Implement formatter.py + tests
 
 ### Step 4 — Verify
 ```
-(cd apps/backend && uv run pytest -q)
-(cd apps/backend && uv run ruff check .)
-(cd apps/backend && uv run ruff format --check schemas/ services/ api/)
+(cd training_engine && uv run pytest -q)
+(cd training_engine && uv run ruff check .)
+(cd training_engine && uv run ruff format --check datasets/)
 ```
 (Standing rule: always wrap `cd`-then-run sequences in a subshell
 `(cd dir && cmd)` — applies to ANY directory navigation in the Bash tool.)
@@ -59,10 +74,10 @@ Week 3 tasks — PHASE1-WEEK3-002/003/004 — don't build those here)
 
 ### Step 6 — Update tracking files
 1. CURRENT_TASK.md → mark STATUS: ✅ COMPLETE, all criteria [x]
-2. DONE.md → add row for PHASE1-WEEK3-001
-3. BACKLOG.md → PHASE1-WEEK3-001 ✅ DONE
+2. DONE.md → add row for PHASE1-WEEK3-002
+3. BACKLOG.md → PHASE1-WEEK3-002 ✅ DONE
 4. MEMORY.md → update session log
-5. CURRENT_TASK.md → replace with PHASE1-WEEK3-002 (dataset formatter)
+5. CURRENT_TASK.md → replace with PHASE1-WEEK3-003 (quality_check.py)
 
 ## BLOCKERS
 None known.
@@ -82,33 +97,32 @@ has been worked around by running the app locally via `uv run uvicorn`
 against host-mapped ports instead of inside the `fts_backend` container.
 Worth a dedicated fix-it task at some point.
 
-**Testing rule learned in PHASE1-WEEK2-013, applies here too:** never call
-a second ad-hoc `asyncio.run(...)` against the real `core.database.engine`
-from inside a pytest test — `tests/conftest.py`'s `client` fixture already
-holds one event loop open for the whole session, and any other loop
-touching the same process-wide engine/pool crashes with cross-loop asyncpg
-errors. Hit the real DB either through the `client` fixture (HTTP calls)
-or, for non-HTTP code paths, via a real `subprocess.run([sys.executable, ...])`
-verified afterward with sync `psycopg2`.
+**Testing rule, reconfirmed in PHASE1-WEEK3-001:** CI's `backend-test` job
+(`.github/workflows/ci.yml`) only spins up Postgres + Redis service
+containers — there is no MinIO service in CI. Any test that exercises a
+code path touching `core/storage.py` MUST mock the storage call (e.g.
+`monkeypatch.setattr(dataset_service, "upload_file", fake_fn)`), never hit
+a real MinIO endpoint, or CI will fail with connection errors. DB-touching
+tests are fine hitting the real Postgres (CI provides it) following the
+existing `client` fixture / `psycopg2` cleanup pattern.
 
-## PREVIOUS TASK SUMMARY (PHASE1-WEEK2-013)
-Completed 2026-06-18. Confirmed scope with the user (DB tables vs. static
-config) before writing code. Added `models/model_catalog.py` and
-`models/gpu_pricing.py` (both global reference tables, no `user_id` FK),
-registered them in `models/__init__.py` and `migrations/env.py`,
-autogenerated + applied migration `5d716f49b7ac`. Wrote
-`scripts/seed_data.py` — idempotent upserts seeding 13 base models and 10
-GPU pricing rows across AWS/GCP/Azure/RunPod/Lambda Labs, using
-`structlog` with no `print()`. Needed a `sys.path` bootstrap in the script
-plus a `ruff.toml` per-file-ignore for `E402` on `scripts/*`.
+**Gotcha, repeated again in PHASE1-WEEK3-001:** the PostToolUse lint/format
+hook auto-fixes "unused" imports between separate `Edit` calls — adding an
+import in one `Edit` and its only usage in a later, separate `Edit` lets
+the hook strip the import in between. Always add an import and its first
+usage in the same `Edit`/`Write` call.
 
-Tests required a real fix: calling the async seed functions directly via
-`asyncio.run()` inside pytest crashed with cross-loop asyncpg errors
-because `conftest.py`'s `client` fixture already holds its own event loop
-open for the whole session. Fixed by testing the script as a real
-subprocess instead, verifying the resulting rows with sync `psycopg2`.
-
-Full suite 50/50 passing. `ruff check .` and `ruff format --check` clean
-on all touched/new files. Pushed `feat/PHASE1-WEEK2-013-seed-data`; PR not
-opened (manual creation per established workflow). **Week 2 backlog fully
-closed — Week 3 begins now.**
+## PREVIOUS TASK SUMMARY (PHASE1-WEEK3-001)
+Completed 2026-06-18. Built the dataset upload flow: `schemas/dataset.py`
+(`DatasetResponse`), `services/dataset_service.py` (extension + content-type
++ size validation, MinIO upload via `core/storage.py`, row counting for
+`.json`/`.jsonl`, creates `Dataset` row with `format="unknown"` since
+format detection is this next task), and `api/v1/routes/datasets.py`
+(`POST /datasets/upload`, `GET /datasets`, both JWT-protected), wired into
+`api_router`. Fixed a real bug: was about to pass the already-exhausted
+`file.file` stream to `upload_file` after `await file.read()` — switched to
+`BytesIO(contents)`. Tests mock the MinIO call since CI has no MinIO
+service container; DB assertions hit the real dev Postgres like
+`test_auth_routes.py`. Full suite 55/55 passing, ruff clean on all
+touched/new files. Pushed `feat/PHASE1-WEEK3-001-dataset-upload`; PR not
+opened (manual creation per established workflow).

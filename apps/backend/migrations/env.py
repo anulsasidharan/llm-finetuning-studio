@@ -8,6 +8,8 @@ from models import (  # noqa: F401
     Experiment,
     ExperimentRun,
     FineTuneJob,
+    GpuPricing,
+    ModelCatalog,
     ModelRegistry,
     User,
 )

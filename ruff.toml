@@ -11,7 +11,7 @@ ignore = [
 [lint.per-file-ignores]
 "migrations/*" = ["E402", "F401"]
 "tests/*" = ["S101"]
-"scripts/*" = ["T201"]
+"scripts/*" = ["T201", "E402"]
 
 [format]
 quote-style = "double"

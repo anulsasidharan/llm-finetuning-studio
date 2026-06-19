@@ -1,15 +1,18 @@
 import json
 from io import BytesIO
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from core.config import settings
-from core.exceptions import ValidationError
-from core.storage import upload_file
+from core.exceptions import NotFoundError, ValidationError
+from core.storage import download_file, upload_file
 from fastapi import UploadFile
 from models.dataset import Dataset
 from models.user import User
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from services.dataset_format import DatasetFormatError, detect_format, to_chatml
+from services.dataset_quality import run_quality_check
 
 ALLOWED_EXTENSIONS = {".json", ".jsonl"}
 ALLOWED_CONTENT_TYPES = {"application/json", "text/plain", "application/octet-stream"}
@@ -34,12 +37,16 @@ def _validate_upload(filename: str | None, content_type: str | None, size_bytes:
         )
 
 
-def _count_rows(contents: bytes, filename: str) -> int:
+def _parse_rows(contents: bytes, filename: str) -> list[dict]:
     if filename.lower().endswith(".jsonl"):
-        return sum(1 for line in contents.splitlines() if line.strip())
+        return [json.loads(line) for line in contents.splitlines() if line.strip()]
 
     parsed = json.loads(contents)
-    return len(parsed) if isinstance(parsed, list) else 1
+    return parsed if isinstance(parsed, list) else [parsed]
+
+
+def _count_rows(contents: bytes, filename: str) -> int:
+    return len(_parse_rows(contents, filename))
 
 
 async def upload_dataset(file: UploadFile, user: User, db: AsyncSession) -> Dataset:
@@ -76,3 +83,47 @@ async def list_datasets(user: User, db: AsyncSession) -> list[Dataset]:
         select(Dataset).where(Dataset.user_id == user.id).order_by(Dataset.created_at.desc())
     )
     return list(result)
+
+
+async def get_dataset(dataset_id: UUID, user: User, db: AsyncSession) -> Dataset:
+    dataset = await db.scalar(
+        select(Dataset).where(Dataset.id == dataset_id, Dataset.user_id == user.id)
+    )
+    if dataset is None:
+        raise NotFoundError("Dataset not found.")
+    return dataset
+
+
+async def format_dataset(dataset_id: UUID, user: User, db: AsyncSession) -> Dataset:
+    dataset = await get_dataset(dataset_id, user, db)
+    contents = download_file(settings.BUCKET_DATASETS, dataset.storage_path)
+    rows = _parse_rows(contents, dataset.name)
+    if not rows:
+        raise ValidationError("Dataset has no rows to format.")
+
+    try:
+        detected_format = detect_format(rows[0])
+    except DatasetFormatError as exc:
+        raise ValidationError(str(exc)) from exc
+
+    dataset.format = detected_format
+    await db.commit()
+    await db.refresh(dataset)
+    return dataset
+
+
+async def quality_check_dataset(dataset_id: UUID, user: User, db: AsyncSession) -> Dataset:
+    dataset = await get_dataset(dataset_id, user, db)
+    contents = download_file(settings.BUCKET_DATASETS, dataset.storage_path)
+    rows = _parse_rows(contents, dataset.name)
+    known_format = dataset.format if dataset.format != UNDETECTED_FORMAT else None
+
+    try:
+        normalized_rows = [to_chatml(row, format=known_format) for row in rows]
+    except DatasetFormatError as exc:
+        raise ValidationError(str(exc)) from exc
+
+    dataset.quality_report = run_quality_check(normalized_rows)
+    await db.commit()
+    await db.refresh(dataset)
+    return dataset

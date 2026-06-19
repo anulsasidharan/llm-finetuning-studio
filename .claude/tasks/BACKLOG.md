@@ -25,7 +25,7 @@
 | PHASE1-WEEK2-010 | main.py — FastAPI app factory + router registration + CORS | ✅ DONE | PHASE1-WEEK2-006 | feat/PHASE1-WEEK2-010-fastapi-app |
 | PHASE1-WEEK2-011 | GET /health endpoint | ✅ DONE | PHASE1-WEEK2-010 | feat/PHASE1-WEEK2-011-health-endpoint |
 | PHASE1-WEEK2-012 | Auth routes — POST /register, /login, /refresh, /logout, GET /me | ✅ DONE | PHASE1-WEEK2-006 | feat/PHASE1-WEEK2-012-auth-routes |
-| PHASE1-WEEK2-013 | scripts/seed_data.py — model catalog + GPU pricing | ⬜ TODO | PHASE1-WEEK2-004 | feat/PHASE1-WEEK2-013-seed-data |
+| PHASE1-WEEK2-013 | scripts/seed_data.py — model catalog + GPU pricing | ✅ DONE | PHASE1-WEEK2-004 | feat/PHASE1-WEEK2-013-seed-data |
 
 ### Week 3 — Dataset + Config + Frontend Shell
 | ID | Task | Status | Depends On | Branch Name |

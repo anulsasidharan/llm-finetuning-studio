@@ -42,7 +42,7 @@
 | PHASE1-WEEK3-010 | Frontend: login + register pages with Zod validation | ✅ DONE | PHASE1-WEEK3-009 | feat/PHASE1-WEEK3-010-auth-pages |
 | PHASE1-WEEK3-011 | Frontend: Dataset Studio page — upload + format + quality report | ✅ DONE | PHASE1-WEEK3-007 | feat/PHASE1-WEEK3-011-dataset-studio |
 | PHASE1-WEEK3-012 | Frontend: Config Builder skeleton — all sections rendered | ✅ DONE | PHASE1-WEEK3-007 | feat/PHASE1-WEEK3-012-config-builder |
-| PHASE1-WEEK3-013 | Frontend: ParameterTooltip component | ⬜ TODO | PHASE1-WEEK3-012 | feat/PHASE1-WEEK3-013-parameter-tooltip |
+| PHASE1-WEEK3-013 | Frontend: ParameterTooltip component | ✅ DONE | PHASE1-WEEK3-012 | feat/PHASE1-WEEK3-013-parameter-tooltip |
 
 ## PHASE 2 — Training Engine + Core Modules (Weeks 4–8)
 

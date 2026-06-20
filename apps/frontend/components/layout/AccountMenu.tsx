@@ -26,14 +26,12 @@ function AccountMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
-        <Button variant="ghost" size="icon" aria-label="Account menu">
-          <Avatar>
-            <AvatarFallback>
-              <CircleUser className="size-4" />
-            </AvatarFallback>
-          </Avatar>
-        </Button>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="Account menu" />}>
+        <Avatar>
+          <AvatarFallback>
+            <CircleUser className="size-4" />
+          </AvatarFallback>
+        </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>

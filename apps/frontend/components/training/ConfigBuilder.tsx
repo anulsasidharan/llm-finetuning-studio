@@ -20,6 +20,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { MethodologyCard, METHODOLOGY_INFO } from "@/components/training/MethodologyCard"
 import { ParameterField } from "@/components/training/ParameterField"
+import { PARAMETER_INFO } from "@/components/training/ParameterTooltip"
 import { useDatasets } from "@/hooks/useDatasets"
 import { useCreateJob } from "@/hooks/useJobs"
 import { useModelCatalog } from "@/hooks/useModelCatalog"
@@ -262,6 +263,7 @@ export function ConfigBuilder() {
             id="learning_rate"
             label="Learning rate"
             error={errors.learning_rate?.message}
+            info={PARAMETER_INFO.learning_rate}
           >
             <Input
               id="learning_rate"
@@ -274,6 +276,7 @@ export function ConfigBuilder() {
             id="num_epochs"
             label="Number of epochs"
             error={errors.num_epochs?.message}
+            info={PARAMETER_INFO.num_epochs}
           >
             <Input
               id="num_epochs"
@@ -281,7 +284,12 @@ export function ConfigBuilder() {
               {...register("num_epochs", { valueAsNumber: true })}
             />
           </ParameterField>
-          <ParameterField id="batch_size" label="Batch size" error={errors.batch_size?.message}>
+          <ParameterField
+            id="batch_size"
+            label="Batch size"
+            error={errors.batch_size?.message}
+            info={PARAMETER_INFO.batch_size}
+          >
             <Input
               id="batch_size"
               type="number"
@@ -304,6 +312,7 @@ export function ConfigBuilder() {
             id="warmup_ratio"
             label="Warmup ratio"
             error={errors.warmup_ratio?.message}
+            info={PARAMETER_INFO.warmup_ratio}
           >
             <Input
               id="warmup_ratio"
@@ -316,6 +325,7 @@ export function ConfigBuilder() {
             id="weight_decay"
             label="Weight decay"
             error={errors.weight_decay?.message}
+            info={PARAMETER_INFO.weight_decay}
           >
             <Input
               id="weight_decay"
@@ -328,6 +338,7 @@ export function ConfigBuilder() {
             id="max_seq_length"
             label="Max sequence length"
             error={errors.max_seq_length?.message}
+            info={PARAMETER_INFO.max_seq_length}
           >
             <Input
               id="max_seq_length"
@@ -339,6 +350,7 @@ export function ConfigBuilder() {
             id="gradient_accumulation_steps"
             label="Gradient accumulation steps"
             error={errors.gradient_accumulation_steps?.message}
+            info={PARAMETER_INFO.gradient_accumulation_steps}
           >
             <Input
               id="gradient_accumulation_steps"
@@ -356,7 +368,12 @@ export function ConfigBuilder() {
             <CardDescription>Required for LoRA and QLoRA.</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <ParameterField id="lora_r" label="LoRA rank (r)" error={errors.lora_r?.message}>
+            <ParameterField
+              id="lora_r"
+              label="LoRA rank (r)"
+              error={errors.lora_r?.message}
+              info={PARAMETER_INFO.lora_r}
+            >
               <Input
                 id="lora_r"
                 type="number"
@@ -367,6 +384,7 @@ export function ConfigBuilder() {
               id="lora_alpha"
               label="LoRA alpha"
               error={errors.lora_alpha?.message}
+              info={PARAMETER_INFO.lora_alpha}
             >
               <Input
                 id="lora_alpha"
@@ -385,7 +403,7 @@ export function ConfigBuilder() {
             <CardDescription>Required for DPO and ORPO.</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <ParameterField id="beta" label="Beta" error={errors.beta?.message}>
+            <ParameterField id="beta" label="Beta" error={errors.beta?.message} info={PARAMETER_INFO.beta}>
               <Input id="beta" type="number" step="any" {...register("beta", { valueAsNumber: true })} />
             </ParameterField>
           </CardContent>
@@ -403,6 +421,7 @@ export function ConfigBuilder() {
               id="reward_model_id"
               label="Reward model ID"
               error={errors.reward_model_id?.message}
+              info={PARAMETER_INFO.reward_model_id}
             >
               <Input id="reward_model_id" type="text" {...register("reward_model_id")} />
             </ParameterField>

@@ -29,6 +29,15 @@ async def list_datasets(
     return await dataset_service.list_datasets(current_user, db)
 
 
+@router.get("/{dataset_id}", response_model=DatasetResponse)
+async def get_dataset(
+    dataset_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Dataset:
+    return await dataset_service.get_dataset(dataset_id, current_user, db)
+
+
 @router.post("/{dataset_id}/format", response_model=DatasetResponse)
 async def format_dataset(
     dataset_id: UUID,

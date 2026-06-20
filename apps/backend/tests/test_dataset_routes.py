@@ -177,6 +177,54 @@ def test_list_datasets_returns_only_current_users_datasets(
     assert data[0]["user_id"] == user["id"]
 
 
+def test_get_dataset_returns_dataset(
+    client, emails_to_cleanup, mock_minio_upload, mock_minio_download
+) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    headers = _auth_headers(user)
+    dataset = _upload_dataset(client, headers, mock_minio_download, _alpaca_jsonl())
+
+    response = client.get(f"/api/v1/datasets/{dataset['id']}", headers=headers)
+
+    assert response.status_code == 200, response.text
+    assert response.json()["id"] == dataset["id"]
+
+
+def test_get_dataset_not_found_returns_404(client, emails_to_cleanup) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+
+    response = client.get(f"/api/v1/datasets/{uuid4()}", headers=_auth_headers(user))
+
+    assert response.status_code == 404
+
+
+def test_get_dataset_scoped_to_owner_returns_404_for_other_users_dataset(
+    client, emails_to_cleanup, mock_minio_upload, mock_minio_download
+) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    owner = _register(client, email)
+    dataset = _upload_dataset(client, _auth_headers(owner), mock_minio_download, _alpaca_jsonl())
+
+    other_email = _unique_email()
+    emails_to_cleanup.append(other_email)
+    other_user = _register(client, other_email)
+
+    response = client.get(f"/api/v1/datasets/{dataset['id']}", headers=_auth_headers(other_user))
+
+    assert response.status_code == 404
+
+
+def test_get_dataset_unauthenticated_returns_401(client) -> None:
+    response = client.get(f"/api/v1/datasets/{uuid4()}")
+
+    assert response.status_code == 401
+
+
 def test_format_dataset_detects_alpaca_format(
     client, emails_to_cleanup, mock_minio_upload, mock_minio_download
 ) -> None:

@@ -564,6 +564,83 @@
         }
       }
     },
+    "/api/v1/models/catalog": {
+      "get": {
+        "tags": [
+          "models"
+        ],
+        "summary": "List Catalog",
+        "operationId": "list_catalog_api_v1_models_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModelCatalogResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Catalog Api V1 Models Catalog Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/models/catalog/{model_id}": {
+      "get": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Get Catalog Model",
+        "operationId": "get_catalog_model_api_v1_models_catalog__model_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Model Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelCatalogResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -960,6 +1037,45 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "ModelCatalogResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "model_id": {
+            "type": "string",
+            "title": "Model Id"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
+          "family": {
+            "type": "string",
+            "title": "Family"
+          },
+          "parameter_count_b": {
+            "type": "number",
+            "title": "Parameter Count B"
+          },
+          "supports_instruct": {
+            "type": "boolean",
+            "title": "Supports Instruct"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "model_id",
+          "display_name",
+          "family",
+          "parameter_count_b",
+          "supports_instruct"
+        ],
+        "title": "ModelCatalogResponse"
       },
       "RefreshRequest": {
         "properties": {

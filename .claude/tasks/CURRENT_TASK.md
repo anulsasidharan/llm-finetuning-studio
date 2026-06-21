@@ -2,125 +2,145 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE2-008
-## TASK NAME: training_engine/utils/gpu_monitor.py — pynvml metrics
+## TASK ID: PHASE2-009
+## TASK NAME: Celery training task — dispatch to training engine
 ## STATUS: ⬜ TODO
 ## ASSIGNED PHASE: Phase 2, Week 4
-## BRANCH: feat/PHASE2-008-gpu-monitor
+## BRANCH: feat/PHASE2-009-celery-training-task (not yet cut)
 
 ## OBJECTIVE
-Per CLAUDE.md section 2 (`training_engine/utils/`) and BACKLOG.md — build a
-`pynvml`-based GPU monitor that reports live `gpu_utilization_pct` and
-`vram_used_gb` (matching the `fine_tune_jobs` column names), so
-`MetricsCallback` (PHASE2-007, now done) can be constructed with a real
-`gpu_monitor` callable instead of always publishing `None` for those two
-fields.
+Per BACKLOG.md — build the Celery task (queue: `training`, per
+`core/celery_app.py`'s `task_routes`) that takes a `FineTuneJob.id`, loads the
+dataset rows from MinIO, picks and constructs the right `training_engine`
+trainer for the job's `methodology`, wires `MetricsCallback` (PHASE2-007) +
+`GPUMonitor` (PHASE2-008) into it, runs `train()`, and updates the job's
+status/metrics columns in Postgres as it goes. This is the task that finally
+makes `POST /jobs` (PHASE1-WEEK3-005) do something — today a created job just
+sits at `status="pending"` forever.
 
-## CONTEXT FROM PHASE2-007
-- `training_engine/utils/callbacks.py`'s `MetricsCallback.__init__` already
-  accepts an optional `gpu_monitor: Callable[[], dict[str, Any]] | None`
-  kwarg — calling it (no args) once per `on_log`/`on_evaluate` publish and
-  merging `gpu_utilization_pct`/`vram_used_gb` from its returned dict into
-  the payload. **This task's deliverable should be a zero-arg callable (or a
-  class exposing one, e.g. `GPUMonitor().sample`) with exactly those two
-  keys** so it can be passed straight into `MetricsCallback(gpu_monitor=...)`
-  with no adapter glue.
-- `pynvml==11.5.0` is already pinned in `training_engine/requirements.txt`
-  (added in some earlier session, unused until now — confirmed via
-  `requirements.txt` read during PHASE2-007).
-- No GPU is guaranteed to be present in dev/CI — `pynvml.nvmlInit()` raises
-  `NVMLError_LibraryNotFound` (or similar) on a machine with no NVIDIA driver.
-  The monitor must degrade gracefully (return `None`/omit the two keys, not
-  raise) when pynvml can't initialize — `MetricsCallback`'s `_gpu_stats()`
-  already does `gpu_stats.get(...)`, tolerant of a partial or empty dict.
-  Mirror the lazy-import-for-testability pattern used everywhere else in
-  `training_engine` (e.g. `_get_bitsandbytes_config_cls()` in
-  `qlora_trainer.py`, `_get_trl_orpo_trainer()` in `orpo_trainer.py`) so unit
-  tests can mock pynvml entirely — never call real NVML in CI/unit tests.
-- `vram_used_gb` should read whichever GPU index the trainer is actually
-  running on (`torch.cuda.current_device()` if CUDA is active, via
-  `BaseTrainer.resolve_device()`'s same pattern) — decide whether
-  `GPUMonitor` takes a device index at construction or always reports
-  device 0; single-GPU dev/training is the only case that matters today
-  (CLAUDE.md's GPU vendor list doesn't yet describe multi-GPU jobs).
+## CONTEXT FROM PRIOR SESSIONS
+- `apps/backend/tasks/__init__.py` exists but is empty — no task modules
+  exist yet. CLAUDE.md section 2 names the target file
+  `apps/backend/tasks/training_tasks.py`.
+- `core/celery_app.py` already routes `tasks.training_tasks.*` → the
+  `training` queue (PHASE1-WEEK2-008) — no celery config changes needed.
+- **Process boundary problem to resolve first:** `training_engine`'s
+  trainers (`BaseTrainer` + subclasses) live in a separate
+  standalone-process/environment from `apps/backend` (see ARCHITECTURE
+  DECISIONS — this is the same boundary PHASE1-WEEK3-004 hit, resolved there
+  by *porting* dataset-format/quality-check logic into
+  `apps/backend/services/`). Training is not a quick synchronous port
+  candidate (real GPU compute, heavy ML deps, long-running) — needs a real
+  decision on how the Celery worker process actually gets `training_engine`
+  importable: e.g. install `training_engine` as a path/editable dependency
+  into the backend's environment, run Celery workers from a working
+  directory that has both on `sys.path`, or restructure `training_engine` as
+  an installable package. **Confirm this with the user before writing code —
+  it changes `docker-compose.gpu.yml`'s celery_worker service and possibly
+  `apps/backend/requirements.txt`.**
+- Trainer dispatch: map `FineTuneJob.methodology` → trainer class
+  (`SFTTrainer`/`LoRATrainer`/`QLoRATrainer`/`DPOTrainer`/`ORPOTrainer`,
+  `rlhf` has no trainer yet — PHASE4-005 stretch goal, so the task should
+  reject/skip `rlhf` jobs for now rather than crash).
+- Dataset loading: `FineTuneJob.dataset_id` → `core.storage.download_file` →
+  parse rows (reuse `services/dataset_service._parse_rows` or the same
+  pattern) → pass as `dataset_rows` to the trainer constructor. DPO/ORPO need
+  preference-pair rows (`{"prompt","chosen","rejected"}`), not ChatML — the
+  job's dataset must already be in that shape for those two methodologies;
+  decide whether to validate this before dispatch or let the trainer's own
+  `prepare_preference_rows()` raise `TrainerError`.
+- Status/metrics updates: `FineTuneJob` has `status`, plus live metric
+  columns (`train_loss`, `eval_loss`, `gpu_utilization_pct`, `vram_used_gb`,
+  `tokens_per_second` — see CLAUDE.md section 4). Decide whether this task
+  also needs to *subscribe* to its own `MetricsCallback` Redis publishes to
+  persist periodic snapshots into Postgres, or whether DB updates are just
+  coarse-grained (`pending → running → completed/failed`) and per-step
+  metrics live only in Redis/the eventual WebSocket hub (PHASE2-010) without
+  ever landing in Postgres. **Flag this as a real open question — CLAUDE.md
+  doesn't say, and it affects whether `experiments`/`registry` pages later
+  read live metrics from the DB or only from the WebSocket stream.**
+- Construct `MetricsCallback(job_id=job.id, gpu_monitor=GPUMonitor().sample)`
+  per this session's PHASE2-008 work — both classes already accept exactly
+  the kwargs needed, no adapter glue required (see
+  `training_engine/tests/test_gpu_monitor.py::test_wires_into_metrics_callback_gpu_monitor_kwarg`
+  for a concrete usage example to mirror).
+- Async/sync mismatch: Celery tasks are sync; `apps/backend`'s DB layer is
+  async-only (`core/database.py`, `AsyncSessionLocal`). Needs a deliberate
+  decision on how this task touches Postgres from inside a sync Celery
+  task — e.g. a sync engine/session via `DATABASE_URL_SYNC` (already exists,
+  used by Alembic/scripts) rather than forcing `asyncio.run()` inside Celery.
 
 ## ACCEPTANCE CRITERIA (DRAFT)
-- [ ] `training_engine/utils/gpu_monitor.py` — a callable/class returning
-      `{"gpu_utilization_pct": float, "vram_used_gb": float}` (or `{}`/partial
-      when unavailable)
-- [ ] Returns gracefully (no raise) when no NVIDIA GPU / pynvml init fails
-- [ ] Unit tests mock `pynvml` entirely — no real NVML/GPU call in tests
-- [ ] `uv run ruff check .` and `uv run pytest tests/` clean in
-      `training_engine/`
-- [ ] Wire a real `GPUMonitor` instance into at least one example of
-      `MetricsCallback(gpu_monitor=...)` construction (decide where — likely
-      stays the Celery training task's job once PHASE2-009 lands; flag if
-      this task should leave that wiring for PHASE2-009 instead of forcing it
-      in now)
+- [ ] `apps/backend/tasks/training_tasks.py` — a Celery task taking a job ID,
+      dispatching to the right `training_engine` trainer, updating job
+      status (`running` → `completed`/`failed`) in Postgres
+- [ ] `training_engine` is actually importable from the Celery worker
+      process — real fix, not just "works on this dev machine"
+- [ ] `MetricsCallback` + `GPUMonitor` wired into the trainer's `callbacks=`
+- [ ] `rlhf` methodology jobs fail clearly (no trainer exists yet), not crash
+      unhandled
+- [ ] Unit tests mock the trainer classes / Celery's sync execution — no real
+      GPU/model download in tests
+- [ ] `ruff check`/`ruff format --check` clean in `apps/backend`
 
 ## STEPS TO COMPLETE
 
-### Step 1 — Cut feature branch from develop
+### Step 1 — Confirm the process-boundary + DB-access design questions above
+with the user before writing code (genuine forks, not guessable from
+existing code/CLAUDE.md).
+
+### Step 2 — Cut feature branch from develop
 ```
 git checkout develop
 git pull origin develop
-git checkout -b feat/PHASE2-008-gpu-monitor
+git checkout -b feat/PHASE2-009-celery-training-task
 ```
 
-### Step 2 — Implement gpu_monitor.py + tests
+### Step 3 — Implement training_tasks.py + tests
 
-### Step 3 — Verify
-`(cd training_engine && uv run ruff check . && uv run ruff format --check . && uv run pytest tests/)`
+### Step 4 — Verify
+`(cd apps/backend && uv run ruff check . && uv run ruff format --check . && uv run pytest tests/)`
 
-### Step 4 — Stage, commit, push
+### Step 5 — Stage, commit, push
 
-### Step 5 — Update tracking files
+### Step 6 — Update tracking files
 
-## PREVIOUS TASK SUMMARY (PHASE2-007)
-Completed 2026-06-21. Built `training_engine/utils/callbacks.py` —
-`MetricsCallback(TrainerCallback)` hooking `on_log`/`on_evaluate` (not
-`on_step_end`, to avoid flooding Redis every single step) and publishing a
-`{"type": "metrics_update", "job_id", "step", "epoch", "train_loss",
-"eval_loss", "gpu_utilization_pct", "vram_used_gb", "tokens_per_second"}`
-payload to Redis pub/sub channel `training_metrics:{job_id}` — this exact
-channel name and payload-type convention turned out to already be documented
-in MEMORY.md's pre-existing "WEBSOCKET PATTERN" section (written ahead of
-this task), so no new naming decision was actually needed, just implementing
-to the existing contract. Resolved the "wire into BaseTrainer by default vs.
-caller-injected" open question from CURRENT_TASK.md's draft: kept
-`BaseTrainer.get_callbacks()` caller-injected (unchanged behavior, preserves
-the existing `test_get_callbacks_returns_copy` assertion) — the future Celery
-training task constructs `MetricsCallback(job_id=...)` itself and passes it
-via the existing `callbacks=` kwarg, consistent with how `dataset_rows` and
-every other external dependency is already threaded into trainers. Redis
-client config reads `TRAINING_ENGINE_REDIS_URL` (already declared in
-`.env.example`, db index 3, separate from the backend's db 0), falling back
-to `redis://localhost:6380/3` for local-outside-Docker runs. `redis==5.0.4`
-was already pinned in `training_engine/requirements.txt` (no new dependency
-needed) — imported at module level (not lazily, unlike trl/peft/bitsandbytes)
-since it's a lightweight, already-required dependency with no GPU/native
-stack to dodge in tests. Took an optional `gpu_monitor` callable + optional
-injected `redis_client` (both for testability and to leave PHASE2-008's
-pynvml monitor as a clean drop-in). Publish failures are caught and logged
-via `structlog.warning`, not raised — a transient Redis hiccup shouldn't
-crash a long-running training job. 14 new tests in `test_callbacks.py`
-(channel naming, custom channel override, env var default/fallback, on_log
-publishes train_loss, ignores logs without loss/eval_loss, ignores
-empty/None logs, on_evaluate publishes eval_loss, ignores metrics without
-eval_loss, gpu_monitor stats included/omitted, publish failure swallowed,
-lazy redis client built from url, injected client reused) — full suite
-73/73 passing. Hit the standing "PostToolUse hook strips a freshly-added
-unused import between separate Edit calls" gotcha once (added `import redis`
-in one edit with its usage already in the file from an earlier edit — this
-time it survived since usage was already present); also hit the standing
-"bare `cd dir && cmd` leaks Bash cwd forward" gotcha once during verification
-(an earlier `cd training_engine && ...` without subshell parens leaked cwd,
-breaking a later `git add training_engine/...` with "No such file or
-directory" since it was now relative to an already-training_engine cwd) —
-recovered with `cd /e/.../Unified_Finetuning_studio` back to repo root.
-`uv run ruff check .` clean; `uv run ruff format --check .` flagged the same
-~20 pre-existing CRLF-drift files noted across every prior training_engine
-session — confirmed via the file list that neither `callbacks.py` nor
-`test_callbacks.py` are among them. Pre-commit hook (ruff lint + format on
-training_engine) passed automatically. Pushed `feat/PHASE2-007-metrics-
-callbacks`.
+## PREVIOUS TASK SUMMARY (PHASE2-008)
+Completed 2026-06-21. Built `training_engine/utils/gpu_monitor.py` —
+`GPUMonitor` class (constructor takes `device_index: int = 0`, default 0 for
+the single-GPU dev/training case) with a `sample()` method (and `__call__`
+alias) returning `{"gpu_utilization_pct": float, "vram_used_gb": float}` via
+lazily-imported `pynvml` (`_get_pynvml()` helper, mirrors the
+`_get_bitsandbytes_config_cls()`/`_get_trl_orpo_trainer()` lazy-import
+pattern used elsewhere in `training_engine` for testability). Degrades to
+`{}` on any failure (`nvmlInit` raising when no NVIDIA driver is present,
+handle/utilization/memory lookups failing) — every failure path is caught
+and logged via `structlog.warning`, never raised, since this is sampled
+inside `MetricsCallback` on every `on_log`/`on_evaluate` of a real,
+expensive, long-running training run. `nvmlShutdown()` runs in a `finally`
+that itself swallows failures, so a broken shutdown never masks/crashes the
+caller. `pynvml==11.5.0` was already pinned in `training_engine/requirements.txt`
+(unused until now) — no new dependency. 9 new tests in
+`test_gpu_monitor.py` (success path returns correct keys, device_index
+passed to handle lookup, `nvmlInit` failure → `{}`, handle-lookup failure →
+`{}`, shutdown still called on a mid-sample failure, shutdown failure itself
+swallowed, `__call__` delegates to `sample()`, default device_index is 0,
+and one integration-style test constructing a real
+`MetricsCallback(gpu_monitor=GPUMonitor(device_index=0).sample)` with mocked
+pynvml end-to-end through `on_log` to prove the zero-adapter-glue contract
+from PHASE2-007 holds) — full suite 82/82 passing. `uv run ruff check .`
+clean; `uv run ruff format --check .` flagged the same pre-existing
+CRLF-drift files noted every prior training_engine session (confirmed via
+`git status` that neither new file is among them). Hit the standing
+"PostToolUse hook strips a freshly-added unused import between separate Edit
+calls" gotcha twice in a row on the same file (added `json`/`MetricsCallback`
+imports before their usage existed in two separate edits) — recovered by
+re-adding both imports in a single `Edit` once usage was already present in
+the file. Also hit the standing "bare `cd dir && cmd` leaks Bash cwd
+forward" gotcha once (a `cd training_engine && uv run ruff check .` without
+subshell parens), which broke the next Edit's PostToolUse lint hook
+(`.claude/hooks/lint.py` not found relative to the leaked cwd) — recovered
+with a plain `cd` back to repo root; reinforces the standing
+`(cd dir && cmd)` subshell rule still needs to be followed every time, even
+mid-verification. Pushed `feat/PHASE2-008-gpu-monitor`; PR not opened
+(manual creation per established workflow).

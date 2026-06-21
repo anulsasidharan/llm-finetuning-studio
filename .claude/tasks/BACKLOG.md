@@ -54,7 +54,7 @@
 | PHASE2-004 | training_engine/trainers/qlora_trainer.py | ✅ DONE | PHASE2-003 | feat/PHASE2-004-qlora-trainer |
 | PHASE2-005 | training_engine/trainers/dpo_trainer.py | ✅ DONE | PHASE2-001 | feat/PHASE2-005-dpo-trainer |
 | PHASE2-006 | training_engine/trainers/orpo_trainer.py | ✅ DONE | PHASE2-001 | feat/PHASE2-006-orpo-trainer |
-| PHASE2-007 | training_engine/utils/callbacks.py — MetricsCallback → Redis pub/sub | ⬜ TODO | PHASE2-001 | feat/PHASE2-007-metrics-callbacks |
+| PHASE2-007 | training_engine/utils/callbacks.py — MetricsCallback → Redis pub/sub | ✅ DONE | PHASE2-001 | feat/PHASE2-007-metrics-callbacks |
 | PHASE2-008 | training_engine/utils/gpu_monitor.py — pynvml metrics | ⬜ TODO | PHASE2-001 | feat/PHASE2-008-gpu-monitor |
 | PHASE2-009 | Celery training task — dispatch to training engine | ⬜ TODO | PHASE2-007 | feat/PHASE2-009-celery-training-task |
 | PHASE2-010 | WebSocket hub — subscribe Redis channel, push to browser | ⬜ TODO | PHASE2-007 | feat/PHASE2-010-websocket-hub |

@@ -166,7 +166,13 @@ class BaseTrainer(ABC):
         return [to_chatml(row, format=format_hint) for row in self.dataset_rows]
 
     def get_callbacks(self) -> list[Any]:
-        """Return trainer callbacks (MetricsCallback added in PHASE2-007)."""
+        """Return trainer callbacks.
+
+        Stays caller-injected (PHASE2-007 decision): the Celery training task
+        constructs ``utils.callbacks.MetricsCallback(job_id=...)`` itself and
+        passes it via the ``callbacks=`` constructor kwarg, same as every
+        other external dependency (``dataset_rows``, etc.) is threaded in.
+        """
         return list(self._callbacks)
 
     @abstractmethod

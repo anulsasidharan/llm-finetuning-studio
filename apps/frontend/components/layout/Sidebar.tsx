@@ -28,7 +28,7 @@ type NavItem = {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Onboarding", href: "/onboarding", icon: Rocket },
   { label: "Datasets", href: "/datasets", icon: Database },
   { label: "Methodology", href: "/methodology", icon: GitBranch },
@@ -43,7 +43,6 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 function isActiveRoute(pathname: string, href: string) {
-  if (href === "/") return pathname === "/"
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
@@ -56,9 +55,12 @@ function Sidebar() {
       className="hidden h-svh w-60 shrink-0 flex-col border-r border-border bg-card sm:flex"
     >
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
-        <span className="text-sm font-semibold text-foreground">
+        <Link href="/dashboard" className="flex items-center gap-2 font-heading text-sm font-semibold text-foreground">
+          <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <FlaskConical className="size-3.5" />
+          </span>
           Fine-Tuning Studio
-        </span>
+        </Link>
       </div>
       <ScrollArea className="flex-1">
         <nav className="flex flex-col gap-1 p-3">

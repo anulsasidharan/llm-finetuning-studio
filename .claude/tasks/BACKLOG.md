@@ -56,7 +56,7 @@
 | PHASE2-006 | training_engine/trainers/orpo_trainer.py | ✅ DONE | PHASE2-001 | feat/PHASE2-006-orpo-trainer |
 | PHASE2-007 | training_engine/utils/callbacks.py — MetricsCallback → Redis pub/sub | ✅ DONE | PHASE2-001 | feat/PHASE2-007-metrics-callbacks |
 | PHASE2-008 | training_engine/utils/gpu_monitor.py — pynvml metrics | ✅ DONE | PHASE2-001 | feat/PHASE2-008-gpu-monitor |
-| PHASE2-009 | Celery training task — dispatch to training engine | 🔄 IN PROGRESS | PHASE2-007 | feat/PHASE2-009-celery-training-task |
+| PHASE2-009 | Celery training task — dispatch to training engine | ✅ DONE | PHASE2-007 | feat/PHASE2-009-celery-training-task |
 | PHASE2-010 | WebSocket hub — subscribe Redis channel, push to browser | ⬜ TODO | PHASE2-007 | feat/PHASE2-010-websocket-hub |
 | PHASE2-011 | Frontend: Live Training Dashboard with WebSocket charts | ⬜ TODO | PHASE2-010 | feat/PHASE2-011-training-dashboard |
 | PHASE2-012 | Frontend: Experiment Tracker UI | ⬜ TODO | PHASE2-009 | feat/PHASE2-012-experiment-tracker |

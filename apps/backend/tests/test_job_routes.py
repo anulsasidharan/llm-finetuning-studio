@@ -5,7 +5,7 @@ import psycopg2
 import pytest
 from core.auth import create_access_token
 from core.config import settings
-from services import dataset_service
+from services import dataset_service, job_service
 
 
 def _unique_email() -> str:
@@ -43,6 +43,18 @@ def mock_minio_upload(monkeypatch) -> list[tuple]:
         calls.append((bucket, object_name, length, content_type))
 
     monkeypatch.setattr(dataset_service, "upload_file", _fake_upload_file)
+    return calls
+
+
+@pytest.fixture
+def mock_dispatch(monkeypatch) -> list[tuple]:
+    calls: list[tuple] = []
+
+    class _FakeDispatch:
+        def delay(self, **kwargs) -> None:
+            calls.append(kwargs)
+
+    monkeypatch.setattr(job_service, "dispatch_training_job", _FakeDispatch())
     return calls
 
 
@@ -113,6 +125,57 @@ def test_create_job_with_dataset_id(client, emails_to_cleanup, mock_minio_upload
 
     assert response.status_code == 201, response.text
     assert response.json()["dataset_id"] == dataset["id"]
+
+
+def test_create_job_dispatches_training_task_without_dataset(
+    client, emails_to_cleanup, mock_dispatch
+) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+
+    response = client.post(
+        "/api/v1/jobs",
+        headers=_auth_headers(user),
+        json={
+            "base_model_id": "meta-llama/Meta-Llama-3-8B",
+            "methodology": "sft",
+            "training_config": {"learning_rate": 0.0001, "num_epochs": 1, "batch_size": 2},
+        },
+    )
+
+    job_id = response.json()["id"]
+    assert len(mock_dispatch) == 1
+    assert mock_dispatch[0]["job_id"] == job_id
+    assert mock_dispatch[0]["dataset_storage_path"] is None
+    assert mock_dispatch[0]["dataset_format"] is None
+
+
+def test_create_job_dispatches_training_task_with_dataset(
+    client, emails_to_cleanup, mock_minio_upload, mock_dispatch
+) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    headers = _auth_headers(user)
+    dataset = _upload_dataset(client, headers)
+
+    response = client.post(
+        "/api/v1/jobs",
+        headers=headers,
+        json={
+            "base_model_id": "meta-llama/Meta-Llama-3-8B",
+            "methodology": "sft",
+            "training_config": {"learning_rate": 0.0001, "num_epochs": 1, "batch_size": 2},
+            "dataset_id": dataset["id"],
+        },
+    )
+
+    job_id = response.json()["id"]
+    assert len(mock_dispatch) == 1
+    assert mock_dispatch[0]["job_id"] == job_id
+    assert mock_dispatch[0]["dataset_storage_path"] == dataset["storage_path"]
+    assert mock_dispatch[0]["dataset_format"] == dataset["format"]
 
 
 def test_create_job_invalid_methodology_rejected(client, emails_to_cleanup) -> None:

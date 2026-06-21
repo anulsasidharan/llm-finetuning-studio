@@ -50,7 +50,7 @@
 |----|------|--------|------------|-------------|
 | PHASE2-001 | training_engine/trainers/base_trainer.py | ✅ DONE | PHASE1 complete | feat/PHASE2-001-base-trainer |
 | PHASE2-002 | training_engine/trainers/sft_trainer.py | ✅ DONE | PHASE2-001 | feat/PHASE2-002-sft-trainer |
-| PHASE2-003 | training_engine/trainers/lora_trainer.py | ⬜ TODO | PHASE2-001 | feat/PHASE2-003-lora-trainer |
+| PHASE2-003 | training_engine/trainers/lora_trainer.py | ✅ DONE | PHASE2-001 | feat/PHASE2-003-lora-trainer |
 | PHASE2-004 | training_engine/trainers/qlora_trainer.py | ⬜ TODO | PHASE2-003 | feat/PHASE2-004-qlora-trainer |
 | PHASE2-005 | training_engine/trainers/dpo_trainer.py | ⬜ TODO | PHASE2-001 | feat/PHASE2-005-dpo-trainer |
 | PHASE2-006 | training_engine/trainers/orpo_trainer.py | ⬜ TODO | PHASE2-001 | feat/PHASE2-006-orpo-trainer |

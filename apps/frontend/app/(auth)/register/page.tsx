@@ -40,7 +40,7 @@ function getErrorDetail(error: unknown, fallback: string): string {
 function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const next = searchParams.get("next") ?? "/"
+  const next = searchParams.get("next") ?? "/dashboard"
   const { register: registerUser, login } = useAuth()
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -69,7 +69,8 @@ function RegisterForm() {
     }
   }
 
-  const loginHref = next && next !== "/" ? `/login?next=${encodeURIComponent(next)}` : "/login"
+  const loginHref =
+    next && next !== "/dashboard" ? `/login?next=${encodeURIComponent(next)}` : "/login"
 
   return (
     <Card>

@@ -7,7 +7,11 @@ subscribes to this exact channel name to relay updates to the browser.
 
 Payload ``type`` is always ``"metrics_update"`` here — the sibling
 ``"status_change"`` type belongs to whatever marks job status transitions
-(the Celery task wrapping a trainer), not this callback.
+(the Celery task wrapping a trainer), not this callback. That's
+``publish_status_change`` below, called from ``utils/job_status.py``'s
+``mark_job_running``/``mark_job_completed``/``mark_job_failed`` (PHASE2-010), so a
+WebSocket client connected to ``WS /ws/training/{job_id}`` sees status flips live, not
+just metric updates.
 """
 
 from __future__ import annotations
@@ -153,3 +157,29 @@ class MetricsCallback(TrainerCallback):
             step=state.global_step, epoch=state.epoch, eval_loss=eval_loss
         )
         self._publish(payload)
+
+
+def publish_status_change(
+    *,
+    job_id: str,
+    status: str,
+    redis_client: Any = None,
+    redis_url: str | None = None,
+    channel: str | None = None,
+) -> None:
+    """Publish a ``status_change`` event to the same channel ``MetricsCallback`` uses.
+
+    Standalone function rather than a method on ``MetricsCallback`` — status
+    transitions are marked by ``utils/job_status.py``, not by a ``TrainerCallback``
+    hook, so there's no shared instance to hang this off of. Publish failures are
+    caught and logged here too, same risk tolerance as ``MetricsCallback._publish``
+    (a transient Redis outage must not crash a job-status update).
+    """
+    job_id = str(job_id)
+    channel = channel or f"training_metrics:{job_id}"
+    payload = {"type": "status_change", "job_id": job_id, "status": status}
+    try:
+        client = redis_client or redis.Redis.from_url(redis_url or _default_redis_url())
+        client.publish(channel, json.dumps(payload))
+    except Exception as exc:
+        logger.warning("status_change_publish_failed", job_id=job_id, status=status, error=str(exc))

@@ -100,6 +100,40 @@ def test_mark_job_failed_swallows_db_errors() -> None:
         mark_job_failed("job-1", "boom")  # must not raise
 
 
+def test_mark_job_running_publishes_status_change() -> None:
+    fake_conn, patcher = _patched_connect()
+    with patcher, patch("utils.job_status.publish_status_change") as mock_publish:
+        mark_job_running("job-1")
+
+    mock_publish.assert_called_once_with(job_id="job-1", status="running")
+
+
+def test_mark_job_completed_publishes_status_change() -> None:
+    fake_conn, patcher = _patched_connect()
+    with patcher, patch("utils.job_status.publish_status_change") as mock_publish:
+        mark_job_completed("job-1", train_loss=0.5, eval_loss=0.4)
+
+    mock_publish.assert_called_once_with(job_id="job-1", status="completed")
+
+
+def test_mark_job_failed_publishes_status_change() -> None:
+    fake_conn, patcher = _patched_connect()
+    with patcher, patch("utils.job_status.publish_status_change") as mock_publish:
+        mark_job_failed("job-1", "boom")
+
+    mock_publish.assert_called_once_with(job_id="job-1", status="failed")
+
+
+def test_mark_job_running_still_publishes_when_db_write_fails() -> None:
+    with (
+        patch("utils.job_status._connect", side_effect=RuntimeError("no db")),
+        patch("utils.job_status.publish_status_change") as mock_publish,
+    ):
+        mark_job_running("job-1")  # must not raise
+
+    mock_publish.assert_called_once_with(job_id="job-1", status="running")
+
+
 def test_update_job_metrics_writes_all_fields() -> None:
     fake_conn, patcher = _patched_connect()
     with patcher:

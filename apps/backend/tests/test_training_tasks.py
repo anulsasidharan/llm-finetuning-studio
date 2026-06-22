@@ -120,3 +120,33 @@ def test_dispatch_closes_connection_even_when_send_task_not_reached() -> None:
         _run(methodology="rlhf")
 
     assert fake_conn.closed is True
+
+
+def test_dispatch_publishes_status_change_on_queued() -> None:
+    fake_conn = _FakeConn()
+    with (
+        patch("tasks.training_tasks._connect", return_value=fake_conn),
+        patch("tasks.training_tasks.celery.send_task"),
+        patch("tasks.training_tasks._publish_status_change") as mock_publish,
+    ):
+        _run()
+
+    mock_publish.assert_called_once_with("job-1", "queued")
+
+
+def test_dispatch_publishes_status_change_on_failure() -> None:
+    fake_conn = _FakeConn()
+    with (
+        patch("tasks.training_tasks._connect", return_value=fake_conn),
+        patch("tasks.training_tasks._publish_status_change") as mock_publish,
+    ):
+        _run(methodology="rlhf")
+
+    mock_publish.assert_called_once_with("job-1", "failed")
+
+
+def test_publish_status_change_swallows_redis_errors() -> None:
+    from tasks.training_tasks import _publish_status_change
+
+    with patch("tasks.training_tasks.redis.Redis.from_url", side_effect=ConnectionError("down")):
+        _publish_status_change("job-1", "queued")  # must not raise

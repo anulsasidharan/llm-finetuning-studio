@@ -22,6 +22,8 @@ from typing import Any
 import structlog
 from transformers import TrainerCallback, TrainerControl, TrainerState, TrainingArguments
 
+from utils.callbacks import publish_status_change
+
 logger = structlog.get_logger()
 
 DEFAULT_DATABASE_URL_SYNC = (
@@ -56,6 +58,7 @@ def mark_job_running(job_id: str) -> None:
         )
     except Exception as exc:
         logger.warning("job_status_update_failed", job_id=job_id, status="running", error=str(exc))
+    publish_status_change(job_id=job_id, status="running")
 
 
 def mark_job_completed(
@@ -76,6 +79,7 @@ def mark_job_completed(
         logger.warning(
             "job_status_update_failed", job_id=job_id, status="completed", error=str(exc)
         )
+    publish_status_change(job_id=job_id, status="completed")
 
 
 def mark_job_failed(job_id: str, error: str) -> None:
@@ -87,6 +91,7 @@ def mark_job_failed(job_id: str, error: str) -> None:
         )
     except Exception as exc:
         logger.warning("job_status_update_failed", job_id=job_id, status="failed", error=str(exc))
+    publish_status_change(job_id=job_id, status="failed")
 
 
 def update_job_metrics(

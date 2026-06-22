@@ -14,8 +14,10 @@ training_engine can download the dataset itself from MinIO and run training.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
+import redis
 import structlog
 from core.celery_app import celery
 from core.config import settings
@@ -23,6 +25,8 @@ from core.config import settings
 logger = structlog.get_logger()
 
 UNSUPPORTED_METHODOLOGIES = frozenset({"rlhf"})
+
+DEFAULT_PUBSUB_REDIS_URL = "redis://localhost:6380/3"
 
 
 def _connect() -> Any:
@@ -43,13 +47,33 @@ def _update_job_status(job_id: str, status: str) -> None:
         conn.close()
 
 
+def _publish_status_change(job_id: str, status: str) -> None:
+    """Publish a status_change event so a connected WS client sees this live.
+
+    Mirrors training_engine/utils/callbacks.py's ``publish_status_change`` — apps/backend
+    can't import training_engine (standalone-process architecture decision), so this is
+    a small duplicate using the same channel/payload shape and the same
+    ``TRAINING_PUBSUB_DB`` Redis URL the WebSocket hub subscribes through.
+    """
+    try:
+        client = redis.Redis.from_url(settings.TRAINING_PUBSUB_DB or DEFAULT_PUBSUB_REDIS_URL)
+        client.publish(
+            f"training_metrics:{job_id}",
+            json.dumps({"type": "status_change", "job_id": job_id, "status": status}),
+        )
+    except Exception as exc:
+        logger.warning("status_change_publish_failed", job_id=job_id, status=status, error=str(exc))
+
+
 def _mark_job_queued(job_id: str) -> None:
     _update_job_status(job_id, "queued")
+    _publish_status_change(job_id, "queued")
 
 
 def _mark_job_failed(job_id: str, error: str) -> None:
     logger.error("training_dispatch_failed", job_id=job_id, error=error)
     _update_job_status(job_id, "failed")
+    _publish_status_change(job_id, "failed")
 
 
 @celery.task(name="tasks.training_tasks.dispatch_training_job")

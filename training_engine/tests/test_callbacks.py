@@ -2,7 +2,7 @@ import json
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from utils.callbacks import MetricsCallback, _default_redis_url
+from utils.callbacks import MetricsCallback, _default_redis_url, publish_status_change
 
 
 def _state(global_step: int = 5, epoch: float = 1.0) -> MagicMock:
@@ -147,3 +147,44 @@ def test_lazy_redis_client_built_from_url_when_not_injected(mock_redis_module: M
 def test_injected_redis_client_is_reused_without_building_one() -> None:
     callback, mock_client = _make_callback()
     assert callback._get_redis_client() is mock_client
+
+
+def test_publish_status_change_publishes_to_default_channel() -> None:
+    mock_client = MagicMock()
+
+    publish_status_change(job_id="job-123", status="running", redis_client=mock_client)
+
+    mock_client.publish.assert_called_once()
+    channel, raw_payload = mock_client.publish.call_args[0]
+    assert channel == "training_metrics:job-123"
+    payload = json.loads(raw_payload)
+    assert payload == {"type": "status_change", "job_id": "job-123", "status": "running"}
+
+
+def test_publish_status_change_respects_custom_channel() -> None:
+    mock_client = MagicMock()
+
+    publish_status_change(
+        job_id="job-123", status="completed", redis_client=mock_client, channel="custom:channel"
+    )
+
+    channel, _ = mock_client.publish.call_args[0]
+    assert channel == "custom:channel"
+
+
+def test_publish_status_change_failure_is_swallowed_not_raised() -> None:
+    mock_client = MagicMock()
+    mock_client.publish.side_effect = ConnectionError("redis unreachable")
+
+    publish_status_change(job_id="job-123", status="failed", redis_client=mock_client)
+
+
+@patch("utils.callbacks.redis")
+def test_publish_status_change_builds_client_from_url_when_not_injected(
+    mock_redis_module: MagicMock,
+) -> None:
+    mock_redis_module.Redis.from_url.return_value = MagicMock()
+
+    publish_status_change(job_id="job-456", status="running", redis_url="redis://localhost:6380/3")
+
+    mock_redis_module.Redis.from_url.assert_called_once_with("redis://localhost:6380/3")

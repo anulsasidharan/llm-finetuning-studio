@@ -58,7 +58,7 @@
 | PHASE2-008 | training_engine/utils/gpu_monitor.py — pynvml metrics | ✅ DONE | PHASE2-001 | feat/PHASE2-008-gpu-monitor |
 | PHASE2-009 | Celery training task — dispatch to training engine | ✅ DONE | PHASE2-007 | feat/PHASE2-009-celery-training-task |
 | PHASE2-010 | WebSocket hub — subscribe Redis channel, push to browser | ✅ DONE | PHASE2-007 | feat/PHASE2-010-websocket-hub |
-| PHASE2-011 | Frontend: Live Training Dashboard with WebSocket charts | ⬜ TODO | PHASE2-010 | feat/PHASE2-011-training-dashboard |
+| PHASE2-011 | Frontend: Live Training Dashboard with WebSocket charts | ✅ DONE | PHASE2-010 | feat/PHASE2-011-training-dashboard |
 | PHASE2-012 | Frontend: Experiment Tracker UI | ⬜ TODO | PHASE2-009 | feat/PHASE2-012-experiment-tracker |
 | PHASE2-013 | Frontend: Methodology Selector wizard | ⬜ TODO | PHASE1 complete | feat/PHASE2-013-methodology-selector |
 | PHASE2-014 | Frontend: GPU Selector page | ⬜ TODO | PHASE1 complete | feat/PHASE2-014-gpu-selector |

@@ -2,121 +2,137 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE2-011
-## TASK NAME: Frontend Live Training Dashboard with WebSocket charts
+## TASK ID: PHASE2-012
+## TASK NAME: Frontend Experiment Tracker UI
 ## STATUS: ⬜ TODO
 ## ASSIGNED PHASE: Phase 2, Week 4
-## BRANCH: feat/PHASE2-011-training-dashboard (not yet cut)
+## BRANCH: feat/PHASE2-012-experiment-tracker (not yet cut)
 
 ## OBJECTIVE
-Per BACKLOG.md and CLAUDE.md's Core Capabilities list — build the Live Training
-Dashboard: a frontend page at `app/(dashboard)/training/[jobId]/page.tsx` that connects
-to the now-built `WS /ws/training/{job_id}` (PHASE2-010) and renders real-time loss
-curves, GPU utilization, and live job status as messages arrive.
+Per BACKLOG.md and CLAUDE.md's Core Capabilities list — build the Experiment Tracker:
+native versioning of runs, configs, metrics, and artifacts. CLAUDE.md section 5 lists
+five routes for this (`GET/POST /experiments`, `GET /experiments/{id}`,
+`POST /experiments/{id}/runs`, `GET /experiments/{id}/compare`) — **none of them exist
+yet**, unlike every other PHASE2-0xx frontend task so far, which had a backend already
+built and waiting. This task is backend + frontend, ground-up.
 
 ## CONTEXT FROM PRIOR SESSIONS
-- The WebSocket hub is live: `apps/backend/websocket/training_hub.py` (`WS
-  /ws/training/{job_id}`), confirmed working end-to-end this session via a real backend
-  + `redis-cli PUBLISH` + the `websockets` pip package. Auth is **JWT as a query param**
-  (`?token=<access_token>`) — the frontend must read the access token the same way
-  `lib/api.ts`'s `getAccessToken()` does (`fts_access_token` in `localStorage`) and
-  append it to the WS URL itself; there is no header-based option.
-- Two payload `type`s arrive on the same socket, already implemented and tested:
-  `metrics_update` (`step`, `epoch`, `train_loss`, `eval_loss`, `gpu_utilization_pct`,
-  `vram_used_gb`, `tokens_per_second`) and `status_change` (`status`). The frontend needs
-  to branch on `type` and update different UI state for each.
-  - Backend: `dispatch_training_job` publishes `status_change` for `queued`/`failed`.
-  - training_engine: `run_training_job`/`utils/job_status.py` publish `status_change` for
-    `running`/`completed`/`failed`, and `MetricsCallback` publishes `metrics_update`.
-- An unauthenticated or unauthorized (wrong user / nonexistent job) WS connection
-  attempt gets a clean **HTTP 403 at the handshake** — confirmed live, not just in
-  mocked tests. The frontend's WS client should handle this connection failure
-  gracefully (e.g. show an error state), not just silently retry forever.
-- CLAUDE.md's directory structure lists `components/charts/{LossChart,LRScheduleChart,
-  GPUUtilChart,VRAMChart,ThroughputChart}.tsx` and `lib/websocket.ts` — none of these
-  exist yet. No chosen charting library is pinned in `apps/frontend/package.json` yet
-  either — this is a real open decision (recharts/visx/chart.js/etc. all plausible,
-  given shadcn/ui's own chart components are recharts-based).
-- `apps/frontend/hooks/useJobs.ts` (PHASE1-WEEK3-012) already has a `useJob(jobId)`
-  query for the static `FineTuneJobResponse` — useful for the dashboard's initial state
-  (methodology, base_model_id, current persisted status/metrics) before the socket has
-  delivered anything live, but has no WebSocket logic itself.
-- `app/(dashboard)/config/[jobId]/page.tsx` (PHASE1-WEEK3-012) is a read-only job detail
-  view using `JobStatusBadge`/`TrainingControls` — worth checking before deciding whether
-  the new training dashboard route is a separate page or extends that one.
-- No browser-automation tool is available in this environment (confirmed repeatedly
-  across prior sessions) — verifying the live chart rendering/WS reconnect behavior will
-  need the same fallback pattern as before: `npm run lint`/`npm run build`, real backend
-  + `redis-cli PUBLISH` + inspecting server-rendered HTML, and if needed a temporary
-  Node script exercising the real WS client module directly (deleted before committing).
+- `apps/backend/models/experiment.py` already exists (built PHASE1-WEEK2-003) — two ORM
+  classes: `Experiment` (`id`, `user_id` FK, `name`, `description`, timestamps, `runs`
+  relationship) and `ExperimentRun` (`id`, `experiment_id` FK, `fine_tune_job_id` FK,
+  `metrics` JSONB, `created_at`). Already registered in `models/__init__.py` and
+  `migrations/env.py`'s explicit import list, and the initial Alembic migration already
+  created both tables (confirmed via `psql \d` historically) — no new migration should be
+  needed unless this task's design needs new columns.
+- No `schemas/experiment.py`, `services/experiment_service.py`, or
+  `api/v1/routes/experiments.py` exist — this task builds all three, following the exact
+  established pattern from `jobs`/`datasets` (Pydantic schema with
+  `ConfigDict(from_attributes=True)`, service functions scoped to `user_id`, routes behind
+  `Depends(get_current_user)`, regenerate `openapi/schema.json`/`types/api-schema.d.ts`
+  afterward).
+- `apps/frontend/app/(dashboard)/experiments/` exists as an **empty directory** (no
+  `page.tsx` inside) — the Sidebar (PHASE1-WEEK3-006) already links to `/experiments` the
+  same way it pre-links to every other not-yet-built module route; this is the established
+  "sidebar built ahead of pages" pattern in this repo, not a sign anything is half-built.
+- `GET /experiments/{id}/compare`'s exact response shape is a genuine open design
+  question — CLAUDE.md doesn't specify it, and there's no existing analogous "compare"
+  endpoint elsewhere in the backend to copy. Needs a decision before backend coding:
+  likely candidates are (a) a list of each run's `fine_tune_job` config + final metrics
+  side by side, or (b) something more structured (e.g. per-metric arrays for charting).
+  Flag this explicitly to the user — don't guess.
+- `POST /experiments/{id}/runs` takes presumably `fine_tune_job_id` (+ optional metrics
+  snapshot?) to attach an existing job to an experiment as a tracked run — confirm whether
+  `metrics` should be populated at creation time (e.g. copied from the job's current
+  `train_loss`/`eval_loss`/etc. columns) or left null until some later update call (no
+  `PATCH /experiments/{id}/runs/{run_id}` exists in CLAUDE.md's route table, so if metrics
+  need to be refreshed later, that's either a gap to flag or a sign runs are meant to be
+  point-in-time snapshots taken once at creation).
+- The completed PHASE2-011 (this session) added `apps/frontend/lib/websocket.ts` and
+  `components/charts/{LossChart,GPUUtilChart,VRAMChart}.tsx` — if the compare view ends up
+  wanting a loss-curve-style chart across multiple runs, these are the closest existing
+  prior art (plain `recharts` `LineChart`, no shared chart abstraction in this repo yet).
+- No browser-automation tool is available in this environment (confirmed repeatedly) —
+  expect the same verification fallback as every prior frontend task: `npm run
+  lint`/`npm run build`, real backend + `curl`, and a temporary Node/script-based check
+  where it adds real signal, deleted before committing.
+- **New gotcha from PHASE2-011, see MEMORY.md ARCHITECTURE DECISIONS:** if this task ever
+  needs to manually verify anything over `WS /ws/training/{job_id}` again, use the
+  `websockets` pip package (`uv run python` from `apps/backend`), not a Node-native
+  `WebSocket` script — the latter gave a false negative this session.
 
 ## ACCEPTANCE CRITERIA (DRAFT)
-- [ ] Pick and add a charting library (or confirm reuse of an existing one) — flag as an
-      open decision before coding
-- [ ] `lib/websocket.ts` — a small client wrapping `WebSocket` (or a hook) that builds
-      the authed WS URL, parses incoming JSON, and exposes `metrics_update`/
-      `status_change` events to consumers
-- [ ] `app/(dashboard)/training/[jobId]/page.tsx` (or extend the existing
-      `config/[jobId]` page — open decision) showing live status + at least a loss chart
-- [ ] Chart components under `components/charts/` for whichever subset of metrics this
-      task actually wires up (loss curve at minimum; GPU/VRAM/throughput if time allows)
-- [ ] Graceful handling of WS connection failure / job already completed (no further
-      messages will ever arrive)
-- [ ] `npm run lint`/`npm run build` clean
+- [ ] Confirm the two open design questions above (compare response shape, run-metrics
+      snapshot timing) with the user before writing backend code
+- [ ] `schemas/experiment.py`, `services/experiment_service.py`,
+      `api/v1/routes/experiments.py` — all five CLAUDE.md routes, scoped to current user,
+      404 on missing/not-owned, wired into `api_router`
+- [ ] Regenerate `openapi/schema.json`/`types/api-schema.d.ts`, add experiment types to
+      `types/index.ts`
+- [ ] `hooks/useExperiments.ts` (list/get/create/compare queries + create-run mutation,
+      mirrors `useJobs.ts`'s pattern)
+- [ ] `app/(dashboard)/experiments/page.tsx` (list + create) and
+      `app/(dashboard)/experiments/[experimentId]/page.tsx` (detail — runs list,
+      attach-a-job-as-a-run action, compare view)
+- [ ] New backend tests following the existing `test_job_routes.py`/
+      `test_dataset_routes.py` pattern (insert/cleanup via real local Postgres, no mocking
+      the DB layer)
+- [ ] `npm run lint`/`npm run build` clean; backend test suite clean
+- [ ] Live end-to-end verification against a real local backend (register, create a job,
+      create an experiment, attach the job as a run, fetch compare)
 
 ## STEPS TO COMPLETE
 
-### Step 1 — Confirm the charting library and exact page/route placement with the user
-before writing code (both are genuine open decisions, not guessable from existing code).
+### Step 1 — Resolve the two open design questions with the user before coding
 
 ### Step 2 — Cut feature branch from develop
 ```
 git checkout develop
 git pull origin develop
-git checkout -b feat/PHASE2-011-training-dashboard
+git checkout -b feat/PHASE2-012-experiment-tracker
 ```
 
-### Step 3 — Implement lib/websocket.ts + chart components + the dashboard page
+### Step 3 — Backend: schemas + service + routes + tests, regenerate frontend types
 
-### Step 4 — Verify
-`(cd apps/frontend && npm run lint && npm run build)`, plus live verification against a
-real backend + `redis-cli PUBLISH` per the established pattern.
+### Step 4 — Frontend: hooks/useExperiments.ts + experiments pages
 
-### Step 5 — Stage, commit, push
+### Step 5 — Verify: backend test suite, `npm run lint`/`npm run build`, live curl-based
+end-to-end check against a real local backend (register → create job → create experiment
+→ attach run → compare)
 
-### Step 6 — Update tracking files
+### Step 6 — Stage, commit, push
 
-## PREVIOUS TASK SUMMARY (PHASE2-010)
-Completed 2026-06-22. Confirmed two scope forks with the user before coding: (1) WS auth
-— user picked JWT as a query param, reusing `core.auth.decode_token`; (2) whether to add
-`status_change` Redis publishing to PHASE2-009's job-status transitions now — user
-picked yes.
+### Step 7 — Update tracking files
 
-Built `apps/backend/websocket/connection_manager.py` (per-job_id connection registry)
-and `websocket/training_hub.py` (`WS /ws/training/{job_id}`, wired into `main.py` at the
-top level, not under `/api/v1`). Auth closes with code 1008 before `accept()` on any
-failure. The relay loop lives in a separately-callable `_serve()`, split out because
-`TestClient.websocket_connect()`'s teardown cancels the whole ASGI task group ahead of
-any handler cleanup `await`s — caught via a failing assertion, not by inspection.
+## PREVIOUS TASK SUMMARY (PHASE2-011)
+Completed 2026-06-22. Both of CURRENT_TASK.md's flagged "open decisions" (charting
+library, route placement) turned out to already be settled by the existing repo —
+`recharts` was already an installed-but-unused dependency, and `.claude/SKILLS.md`
+already documented the exact `NEXT_PUBLIC_WS_URL`/`useTrainingWebSocket` pattern to
+follow — so no user interruption was needed.
 
-Added `publish_status_change()` to `training_engine/utils/callbacks.py`, wired into
-`utils/job_status.py`'s three `mark_job_*` functions, plus a duplicate
-`_publish_status_change()` in `apps/backend/tasks/training_tasks.py` (process-boundary
-duplicate, can't import training_engine) wired into its `queued`/`failed` transitions —
-realizes the payload-type split reserved since PHASE2-007.
+Built `apps/frontend/lib/websocket.ts`'s `useTrainingSocket(jobId, enabled)` hook (JWT-
+as-query-param auth per PHASE2-010, exposes `connectionState`/`status`/`metrics[]`, caps
+history at 500, never auto-reconnects); `components/charts/{LossChart,GPUUtilChart,
+VRAMChart}.tsx` (plain `recharts` `LineChart`s); new route
+`app/(dashboard)/training/[jobId]/page.tsx` (separate from the existing read-only
+`config/[jobId]/page.tsx`) showing live status + stat cards + all three charts, closing
+the socket once the job is in a terminal state.
 
-Verified live end-to-end: real backend + real `fts_redis`/`fts_postgres`, registered a
-user, created a real job (`.delay()` now succeeds against the broker once
-`CELERY_BROKER_URL`/`CELERY_RESULT_BACKEND` are also overridden to `localhost:6380` for
-local runs — new gotcha, see MEMORY.md), connected with the real `websockets` pip
-package, `redis-cli PUBLISH`'d both payload types into `training_metrics:{job_id}` on
-Redis db 3, confirmed both arrived verbatim over the real socket, and confirmed an
-unauthenticated connection gets a clean HTTP 403 at the handshake.
+Hit the new `react-hooks/set-state-in-effect` lint rule (flags any direct `setState` call
+in an effect's synchronous body, even inside a guard clause) — fixed by relying on
+`useState`'s initial value for the disabled case and wrapping the remaining two
+synchronous sets in `queueMicrotask(...)`.
 
-16 new tests in `apps/backend` (6 connection_manager, 7 training_hub including a
-deterministic `_serve()` unit test driven via `asyncio.run()` instead of `TestClient`,
-3 new in test_training_tasks.py) + 8 in `training_engine` (4 `publish_status_change`,
-4 status-change wiring) — `apps/backend` 112/112, `training_engine` 111/111 passing.
+**Real finding during live verification (see MEMORY.md ARCHITECTURE DECISIONS):** a
+Node-native `WebSocket` test script produced a false negative against
+`WS /ws/training/{job_id}` (looked like the backend dropped the Redis subscription
+within ~1–2s); re-verified with the `websockets` pip package (same method PHASE2-010
+used) and both `metrics_update`/`status_change` payloads arrived correctly — the backend
+hub is fine, the Node built-in client is the unreliable piece for manual verification.
 
-Pushed `feat/PHASE2-010-websocket-hub`; PR not opened (manual creation per established
-workflow).
+`npm run lint`/`npm run build` clean. Cleaned up: reverted temporary debug logging in
+`training_hub.py` (zero net diff), deleted all temp scripts/logs, deleted the
+verification user+job via `docker exec fts_postgres psql`, stopped the local non-Docker
+backend process, left the already-running `fts_postgres`/`fts_redis`/`fts_minio`
+containers as they were. Pushed `feat/PHASE2-011-training-dashboard`; PR not opened
+(manual creation per established workflow).

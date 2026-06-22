@@ -6,6 +6,7 @@ from models.user import User
 from schemas.job import FineTuneJobCreate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from tasks.training_tasks import dispatch_training_job
 
 from services.dataset_service import get_dataset
 
@@ -43,8 +44,9 @@ async def create_job(payload: FineTuneJobCreate, user: User, db: AsyncSession) -
         )
     _validate_training_config(payload.methodology, payload.training_config)
 
+    dataset = None
     if payload.dataset_id is not None:
-        await get_dataset(payload.dataset_id, user, db)
+        dataset = await get_dataset(payload.dataset_id, user, db)
 
     job = FineTuneJob(
         user_id=user.id,
@@ -59,6 +61,16 @@ async def create_job(payload: FineTuneJobCreate, user: User, db: AsyncSession) -
     db.add(job)
     await db.commit()
     await db.refresh(job)
+
+    dispatch_training_job.delay(
+        job_id=str(job.id),
+        base_model_id=job.base_model_id,
+        methodology=job.methodology,
+        training_config=job.training_config,
+        dataset_storage_path=dataset.storage_path if dataset else None,
+        dataset_format=dataset.format if dataset else None,
+    )
+
     return job
 
 

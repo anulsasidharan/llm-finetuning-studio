@@ -6,6 +6,10 @@ export type DatasetResponse = components["schemas"]["DatasetResponse"];
 export type FineTuneJobResponse = components["schemas"]["FineTuneJobResponse"];
 export type FineTuneJobConfigResponse = components["schemas"]["FineTuneJobConfigResponse"];
 export type ModelCatalogResponse = components["schemas"]["ModelCatalogResponse"];
+export type ExperimentResponse = components["schemas"]["ExperimentResponse"];
+export type ExperimentRunResponse = components["schemas"]["ExperimentRunResponse"];
+export type ExperimentCompareResponse = components["schemas"]["ExperimentCompareResponse"];
+export type ExperimentRunCompareEntry = components["schemas"]["ExperimentRunCompareEntry"];
 
 export type DatasetFormat = DatasetResponse["format"];
 export type FineTuneJobStatus = FineTuneJobResponse["status"];

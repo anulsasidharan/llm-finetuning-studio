@@ -69,7 +69,7 @@
 | ID | Task | Status | Depends On | Branch Name |
 |----|------|--------|------------|-------------|
 | PHASE3-001 | GPU pricing service — RunPod + Lambda Labs API integration | ✅ DONE | PHASE2 complete | feat/PHASE3-001-gpu-pricing-service |
-| PHASE3-002 | GPU pricing Redis cache with TTL | ⬜ TODO | PHASE3-001 | feat/PHASE3-002-gpu-pricing-cache |
+| PHASE3-002 | GPU pricing Redis cache with TTL | ✅ DONE | PHASE3-001 | feat/PHASE3-002-gpu-pricing-cache |
 | PHASE3-003 | Cost forecaster service — pre-flight cost calculation | ⬜ TODO | PHASE3-001 | feat/PHASE3-003-cost-forecaster |
 | PHASE3-004 | Cloud launcher — submit jobs to RunPod via API | ⬜ TODO | PHASE3-001 | feat/PHASE3-004-cloud-launcher |
 | PHASE3-005 | training_engine/evaluation/benchmark.py — MMLU/HellaSwag/ARC | ⬜ TODO | PHASE2 complete | feat/PHASE3-005-eval-benchmark |

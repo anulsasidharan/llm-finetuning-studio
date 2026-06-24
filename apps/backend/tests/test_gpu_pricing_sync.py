@@ -3,9 +3,11 @@ from uuid import uuid4
 
 import psycopg2
 import pytest
+import redis
 from core.auth import create_access_token
 from core.config import settings
 from services.gpu_pricing_providers.base import GpuPricingProviderError, NormalizedGpuOffer
+from services.gpu_pricing_sync_service import CACHE_KEY
 
 
 def _unique_email() -> str:
@@ -23,6 +25,17 @@ def emails_to_cleanup() -> Iterator[list[str]]:
                 cur.execute("DELETE FROM users WHERE email = ANY(%s)", (emails,))
         finally:
             conn.close()
+
+
+@pytest.fixture
+def clear_gpu_pricing_cache() -> Iterator[None]:
+    client = redis.Redis.from_url(settings.REDIS_URL)
+    try:
+        client.delete(CACHE_KEY)
+        yield
+        client.delete(CACHE_KEY)
+    finally:
+        client.close()
 
 
 @pytest.fixture
@@ -60,7 +73,9 @@ def test_sync_pricing_requires_auth(client):
     assert response.status_code == 401
 
 
-def test_sync_pricing_skips_vendor_without_api_key(client, monkeypatch, emails_to_cleanup):
+def test_sync_pricing_skips_vendor_without_api_key(
+    client, monkeypatch, emails_to_cleanup, clear_gpu_pricing_cache
+):
     email = _unique_email()
     emails_to_cleanup.append(email)
     user = _register(client, email)
@@ -78,7 +93,7 @@ def test_sync_pricing_skips_vendor_without_api_key(client, monkeypatch, emails_t
 
 
 def test_sync_pricing_upserts_offers_and_reports_failure(
-    client, monkeypatch, emails_to_cleanup, gpu_pricing_rows_to_cleanup
+    client, monkeypatch, emails_to_cleanup, gpu_pricing_rows_to_cleanup, clear_gpu_pricing_cache
 ):
     email = _unique_email()
     emails_to_cleanup.append(email)
@@ -140,7 +155,7 @@ def test_sync_pricing_upserts_offers_and_reports_failure(
 
 
 def test_sync_pricing_dedupes_same_gpu_type_keeping_cheapest(
-    client, monkeypatch, emails_to_cleanup, gpu_pricing_rows_to_cleanup
+    client, monkeypatch, emails_to_cleanup, gpu_pricing_rows_to_cleanup, clear_gpu_pricing_cache
 ):
     email = _unique_email()
     emails_to_cleanup.append(email)
@@ -184,3 +199,66 @@ def test_sync_pricing_dedupes_same_gpu_type_keeping_cheapest(
     finally:
         conn.close()
     assert float(row[0]) == 1.2
+
+
+def test_sync_pricing_second_call_served_from_cache(
+    client, monkeypatch, emails_to_cleanup, gpu_pricing_rows_to_cleanup, clear_gpu_pricing_cache
+):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+
+    gpu_type = f"Test-Sync-Cache-{uuid4()}"
+    gpu_pricing_rows_to_cleanup.append(gpu_type)
+
+    monkeypatch.setattr(settings, "RUNPOD_API_KEY", "fake-runpod-key")
+    monkeypatch.setattr(settings, "LAMBDA_LABS_API_KEY", "")
+
+    call_count = {"runpod": 0}
+
+    async def fake_runpod(api_key: str, client=None) -> list[NormalizedGpuOffer]:
+        call_count["runpod"] += 1
+        return [
+            NormalizedGpuOffer(
+                vendor="RunPod", gpu_type=gpu_type, vram_gb=80, price_per_hour_usd=1.0
+            )
+        ]
+
+    monkeypatch.setattr(
+        "services.gpu_pricing_providers.runpod_provider.fetch_runpod_pricing", fake_runpod
+    )
+
+    first = client.post("/api/v1/gpu/sync-pricing", headers=_auth_headers(user))
+    assert first.status_code == 200, first.text
+    first_body = first.json()
+    assert first_body["cached"] is False
+    assert first_body["vendors"]["runpod"]["rows_upserted"] == 1
+
+    second = client.post("/api/v1/gpu/sync-pricing", headers=_auth_headers(user))
+    assert second.status_code == 200, second.text
+    second_body = second.json()
+    assert second_body == {**first_body, "cached": True}
+
+    # The provider must only be hit once — the second call is served entirely from cache.
+    assert call_count["runpod"] == 1
+
+
+def test_sync_pricing_cache_ttl_matches_configured_setting(
+    client, monkeypatch, emails_to_cleanup, clear_gpu_pricing_cache
+):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+
+    monkeypatch.setattr(settings, "RUNPOD_API_KEY", "")
+    monkeypatch.setattr(settings, "LAMBDA_LABS_API_KEY", "")
+
+    response = client.post("/api/v1/gpu/sync-pricing", headers=_auth_headers(user))
+    assert response.status_code == 200, response.text
+
+    redis_client = redis.Redis.from_url(settings.REDIS_URL)
+    try:
+        ttl = redis_client.ttl(CACHE_KEY)
+    finally:
+        redis_client.close()
+    assert 0 < ttl <= settings.GPU_PRICING_CACHE_TTL_SECONDS

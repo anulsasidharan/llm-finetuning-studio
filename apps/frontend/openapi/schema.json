@@ -622,6 +622,120 @@
         }
       }
     },
+    "/api/v1/gpu/instances": {
+      "get": {
+        "tags": [
+          "gpu"
+        ],
+        "summary": "List Instances",
+        "operationId": "list_instances_api_v1_gpu_instances_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vendor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vendor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GpuPricingResponse"
+                  },
+                  "title": "Response List Instances Api V1 Gpu Instances Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/gpu/pricing": {
+      "get": {
+        "tags": [
+          "gpu"
+        ],
+        "summary": "Get Pricing",
+        "operationId": "get_pricing_api_v1_gpu_pricing_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vendor",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Vendor"
+            }
+          },
+          {
+            "name": "gpu_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Gpu Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GpuPricingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/jobs": {
       "get": {
         "tags": [
@@ -1490,6 +1604,40 @@
           "updated_at"
         ],
         "title": "FineTuneJobResponse"
+      },
+      "GpuPricingResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "gpu_type": {
+            "type": "string",
+            "title": "Gpu Type"
+          },
+          "vram_gb": {
+            "type": "integer",
+            "title": "Vram Gb"
+          },
+          "price_per_hour_usd": {
+            "type": "number",
+            "title": "Price Per Hour Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "vendor",
+          "gpu_type",
+          "vram_gb",
+          "price_per_hour_usd"
+        ],
+        "title": "GpuPricingResponse"
       },
       "HTTPValidationError": {
         "properties": {

@@ -243,6 +243,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/gpu/instances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Instances */
+        get: operations["list_instances_api_v1_gpu_instances_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gpu/pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Pricing */
+        get: operations["get_pricing_api_v1_gpu_pricing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs": {
         parameters: {
             query?: never;
@@ -590,6 +624,22 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** GpuPricingResponse */
+        GpuPricingResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Vendor */
+            vendor: string;
+            /** Gpu Type */
+            gpu_type: string;
+            /** Vram Gb */
+            vram_gb: number;
+            /** Price Per Hour Usd */
+            price_per_hour_usd: number;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1113,6 +1163,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExperimentCompareResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_instances_api_v1_gpu_instances_get: {
+        parameters: {
+            query?: {
+                vendor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GpuPricingResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pricing_api_v1_gpu_pricing_get: {
+        parameters: {
+            query: {
+                vendor: string;
+                gpu_type: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GpuPricingResponse"];
                 };
             };
             /** @description Validation Error */

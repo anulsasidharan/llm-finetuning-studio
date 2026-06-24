@@ -10,6 +10,7 @@ export type ExperimentResponse = components["schemas"]["ExperimentResponse"];
 export type ExperimentRunResponse = components["schemas"]["ExperimentRunResponse"];
 export type ExperimentCompareResponse = components["schemas"]["ExperimentCompareResponse"];
 export type ExperimentRunCompareEntry = components["schemas"]["ExperimentRunCompareEntry"];
+export type GpuPricingResponse = components["schemas"]["GpuPricingResponse"];
 
 export type DatasetFormat = DatasetResponse["format"];
 export type FineTuneJobStatus = FineTuneJobResponse["status"];

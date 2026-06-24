@@ -11,6 +11,8 @@ export type ExperimentRunResponse = components["schemas"]["ExperimentRunResponse
 export type ExperimentCompareResponse = components["schemas"]["ExperimentCompareResponse"];
 export type ExperimentRunCompareEntry = components["schemas"]["ExperimentRunCompareEntry"];
 export type GpuPricingResponse = components["schemas"]["GpuPricingResponse"];
+export type CostEstimateRequest = components["schemas"]["CostEstimateRequest"];
+export type CostEstimateResponse = components["schemas"]["CostEstimateResponse"];
 
 export type DatasetFormat = DatasetResponse["format"];
 export type FineTuneJobStatus = FineTuneJobResponse["status"];

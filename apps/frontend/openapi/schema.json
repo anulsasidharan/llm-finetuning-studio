@@ -736,6 +736,52 @@
         }
       }
     },
+    "/api/v1/gpu/estimate": {
+      "post": {
+        "tags": [
+          "gpu"
+        ],
+        "summary": "Estimate Cost",
+        "operationId": "estimate_cost_api_v1_gpu_estimate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CostEstimateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostEstimateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/jobs": {
       "get": {
         "tags": [
@@ -1024,6 +1070,131 @@
           "file"
         ],
         "title": "Body_upload_dataset_api_v1_datasets_upload_post"
+      },
+      "CostEstimateRequest": {
+        "properties": {
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "gpu_type": {
+            "type": "string",
+            "title": "Gpu Type"
+          },
+          "hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hours"
+          },
+          "methodology": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "sft",
+                  "lora",
+                  "qlora",
+                  "dpo",
+                  "orpo",
+                  "rlhf"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Methodology"
+          },
+          "num_epochs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Epochs"
+          },
+          "dataset_row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Row Count"
+          },
+          "batch_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Size"
+          },
+          "gradient_accumulation_steps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gradient Accumulation Steps"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vendor",
+          "gpu_type"
+        ],
+        "title": "CostEstimateRequest"
+      },
+      "CostEstimateResponse": {
+        "properties": {
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "gpu_type": {
+            "type": "string",
+            "title": "Gpu Type"
+          },
+          "price_per_hour_usd": {
+            "type": "number",
+            "title": "Price Per Hour Usd"
+          },
+          "estimated_hours": {
+            "type": "number",
+            "title": "Estimated Hours"
+          },
+          "estimated_cost_usd": {
+            "type": "number",
+            "title": "Estimated Cost Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vendor",
+          "gpu_type",
+          "price_per_hour_usd",
+          "estimated_hours",
+          "estimated_cost_usd"
+        ],
+        "title": "CostEstimateResponse"
       },
       "DatasetResponse": {
         "properties": {

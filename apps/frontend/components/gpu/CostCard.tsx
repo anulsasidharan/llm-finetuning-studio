@@ -1,4 +1,7 @@
+"use client"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useCostProjections } from "@/hooks/useCostEstimate"
 import type { GpuPricingResponse } from "@/types"
 
 const PROJECTION_HOURS: { label: string; hours: number }[] = [
@@ -9,6 +12,11 @@ const PROJECTION_HOURS: { label: string; hours: number }[] = [
 ]
 
 export function CostCard({ instance }: { instance: GpuPricingResponse }) {
+  const projectionsQuery = useCostProjections(
+    instance,
+    PROJECTION_HOURS.map((projection) => projection.hours)
+  )
+
   return (
     <Card>
       <CardHeader>
@@ -18,11 +26,13 @@ export function CostCard({ instance }: { instance: GpuPricingResponse }) {
         </CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {PROJECTION_HOURS.map((projection) => (
+        {PROJECTION_HOURS.map((projection, index) => (
           <div key={projection.label} className="flex flex-col gap-1">
             <p className="text-sm text-muted-foreground">{projection.label}</p>
             <p className="text-lg font-semibold">
-              ${(instance.price_per_hour_usd * projection.hours).toFixed(2)}
+              {projectionsQuery.isLoading
+                ? "..."
+                : `$${(projectionsQuery.data?.[index]?.estimated_cost_usd ?? instance.price_per_hour_usd * projection.hours).toFixed(2)}`}
             </p>
           </div>
         ))}

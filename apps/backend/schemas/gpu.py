@@ -1,3 +1,4 @@
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -49,3 +50,15 @@ class CostEstimateResponse(BaseModel):
     price_per_hour_usd: float
     estimated_hours: float
     estimated_cost_usd: float
+
+
+class GpuPricingSyncVendorResult(BaseModel):
+    status: Literal["ok", "skipped", "failed"]
+    offers_fetched: int = 0
+    rows_upserted: int = 0
+    detail: str | None = None
+
+
+class GpuPricingSyncResponse(BaseModel):
+    vendors: dict[str, GpuPricingSyncVendorResult]
+    total_rows_upserted: int

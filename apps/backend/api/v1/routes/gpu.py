@@ -3,8 +3,13 @@ from core.database import get_db
 from fastapi import APIRouter, Depends, Query
 from models.gpu_pricing import GpuPricing
 from models.user import User
-from schemas.gpu import CostEstimateRequest, CostEstimateResponse, GpuPricingResponse
-from services import gpu_service
+from schemas.gpu import (
+    CostEstimateRequest,
+    CostEstimateResponse,
+    GpuPricingResponse,
+    GpuPricingSyncResponse,
+)
+from services import gpu_pricing_sync_service, gpu_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
@@ -36,3 +41,11 @@ async def estimate_cost(
     db: AsyncSession = Depends(get_db),
 ) -> CostEstimateResponse:
     return await gpu_service.estimate_cost(payload, db)
+
+
+@router.post("/sync-pricing", response_model=GpuPricingSyncResponse)
+async def sync_pricing(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> GpuPricingSyncResponse:
+    return await gpu_pricing_sync_service.sync_live_pricing(db)

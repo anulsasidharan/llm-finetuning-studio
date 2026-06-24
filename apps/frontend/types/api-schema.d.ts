@@ -294,6 +294,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/gpu/sync-pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync Pricing */
+        post: operations["sync_pricing_api_v1_gpu_sync_pricing_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs": {
         parameters: {
             query?: never;
@@ -689,6 +706,35 @@ export interface components {
             vram_gb: number;
             /** Price Per Hour Usd */
             price_per_hour_usd: number;
+        };
+        /** GpuPricingSyncResponse */
+        GpuPricingSyncResponse: {
+            /** Vendors */
+            vendors: {
+                [key: string]: components["schemas"]["GpuPricingSyncVendorResult"];
+            };
+            /** Total Rows Upserted */
+            total_rows_upserted: number;
+        };
+        /** GpuPricingSyncVendorResult */
+        GpuPricingSyncVendorResult: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "skipped" | "failed";
+            /**
+             * Offers Fetched
+             * @default 0
+             */
+            offers_fetched: number;
+            /**
+             * Rows Upserted
+             * @default 0
+             */
+            rows_upserted: number;
+            /** Detail */
+            detail?: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1317,6 +1363,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_pricing_api_v1_gpu_sync_pricing_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GpuPricingSyncResponse"];
                 };
             };
         };

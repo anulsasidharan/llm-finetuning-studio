@@ -13,6 +13,8 @@ export type ExperimentRunCompareEntry = components["schemas"]["ExperimentRunComp
 export type GpuPricingResponse = components["schemas"]["GpuPricingResponse"];
 export type CostEstimateRequest = components["schemas"]["CostEstimateRequest"];
 export type CostEstimateResponse = components["schemas"]["CostEstimateResponse"];
+export type GpuPricingSyncResponse = components["schemas"]["GpuPricingSyncResponse"];
+export type GpuPricingSyncVendorResult = components["schemas"]["GpuPricingSyncVendorResult"];
 
 export type DatasetFormat = DatasetResponse["format"];
 export type FineTuneJobStatus = FineTuneJobResponse["status"];

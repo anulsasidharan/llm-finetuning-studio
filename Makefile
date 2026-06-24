@@ -1,4 +1,4 @@
-.PHONY: help dev stop build setup migrate migration seed test lint format check fix hooks-install clean logs ps
+.PHONY: help dev stop build setup migrate migration seed sync-gpu-pricing test lint format check fix hooks-install clean logs ps
 
 COMPOSE = docker compose
 BACKEND = apps/backend
@@ -13,6 +13,7 @@ help:
 	@echo "make migrate        Run DB migrations"
 	@echo "make migration      Create migration (MSG=your message)"
 	@echo "make seed           Seed initial data"
+	@echo "make sync-gpu-pricing  Refresh GPU pricing from RunPod + Lambda Labs APIs"
 	@echo "make test           Run all tests"
 	@echo "make lint           Lint all code (report only)"
 	@echo "make format         Format all code"
@@ -70,6 +71,9 @@ migration:
 
 seed:
 	$(COMPOSE) run --rm backend python -m scripts.seed_data
+
+sync-gpu-pricing:
+	$(COMPOSE) run --rm backend python -m scripts.sync_gpu_pricing
 
 db-shell:
 	docker exec -it fts_postgres psql -U fts_user -d fts_db

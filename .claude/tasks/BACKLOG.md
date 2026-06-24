@@ -62,7 +62,7 @@
 | PHASE2-012 | Frontend: Experiment Tracker UI | ✅ DONE | PHASE2-009 | feat/PHASE2-012-experiment-tracker |
 | PHASE2-013 | Frontend: Methodology Selector wizard | ✅ DONE | PHASE1 complete | feat/PHASE2-013-methodology-selector |
 | PHASE2-014 | Frontend: GPU Selector page | ✅ DONE | PHASE1 complete | feat/PHASE2-014-gpu-selector |
-| PHASE2-015 | Frontend: Cost Estimator page | ⬜ TODO | PHASE1 complete | feat/PHASE2-015-cost-estimator |
+| PHASE2-015 | Frontend: Cost Estimator page | ✅ DONE | PHASE1 complete | feat/PHASE2-015-cost-estimator |
 
 ## PHASE 3 — Cloud, Evaluation & Deploy (Weeks 9–12)
 

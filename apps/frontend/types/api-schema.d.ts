@@ -277,6 +277,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/gpu/estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Estimate Cost */
+        post: operations["estimate_cost_api_v1_gpu_estimate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs": {
         parameters: {
             query?: never;
@@ -391,6 +408,38 @@ export interface components {
              * Format: binary
              */
             file: string;
+        };
+        /** CostEstimateRequest */
+        CostEstimateRequest: {
+            /** Vendor */
+            vendor: string;
+            /** Gpu Type */
+            gpu_type: string;
+            /** Hours */
+            hours?: number | null;
+            /** Methodology */
+            methodology?: ("sft" | "lora" | "qlora" | "dpo" | "orpo" | "rlhf") | null;
+            /** Num Epochs */
+            num_epochs?: number | null;
+            /** Dataset Row Count */
+            dataset_row_count?: number | null;
+            /** Batch Size */
+            batch_size?: number | null;
+            /** Gradient Accumulation Steps */
+            gradient_accumulation_steps?: number | null;
+        };
+        /** CostEstimateResponse */
+        CostEstimateResponse: {
+            /** Vendor */
+            vendor: string;
+            /** Gpu Type */
+            gpu_type: string;
+            /** Price Per Hour Usd */
+            price_per_hour_usd: number;
+            /** Estimated Hours */
+            estimated_hours: number;
+            /** Estimated Cost Usd */
+            estimated_cost_usd: number;
         };
         /** DatasetResponse */
         DatasetResponse: {
@@ -1226,6 +1275,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GpuPricingResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    estimate_cost_api_v1_gpu_estimate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CostEstimateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostEstimateResponse"];
                 };
             };
             /** @description Validation Error */

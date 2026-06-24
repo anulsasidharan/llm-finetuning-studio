@@ -163,6 +163,22 @@ export function ConfigBuilder() {
   })
 
   const methodology = watch("methodology")
+  const gpuType = watch("gpu_type")
+  const cloudVendor = watch("cloud_vendor")
+  const datasetId = watch("dataset_id")
+  const numEpochs = watch("num_epochs")
+  const batchSize = watch("batch_size")
+  const gradientAccumulationSteps = watch("gradient_accumulation_steps")
+
+  const costEstimatorHref = `/cost-estimator?${new URLSearchParams({
+    methodology,
+    gpu_type: gpuType ?? "",
+    cloud_vendor: cloudVendor ?? "",
+    dataset_id: datasetId ?? "",
+    num_epochs: String(numEpochs ?? ""),
+    batch_size: String(batchSize ?? ""),
+    gradient_accumulation_steps: String(gradientAccumulationSteps ?? ""),
+  }).toString()}`
 
   async function onSubmit(values: ConfigFormValues) {
     setFormError(null)
@@ -450,9 +466,14 @@ export function ConfigBuilder() {
         <CardHeader>
           <div className="flex items-center justify-between gap-2">
             <CardTitle>Compute (optional)</CardTitle>
-            <Button type="button" variant="outline" size="sm" render={<Link href="/gpu-selector" />}>
-              Compare GPUs
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" size="sm" render={<Link href="/gpu-selector" />}>
+                Compare GPUs
+              </Button>
+              <Button type="button" variant="outline" size="sm" render={<Link href={costEstimatorHref} />}>
+                Estimate cost
+              </Button>
+            </div>
           </div>
           <CardDescription>
             Leave blank to decide later, or compare GPU instances across vendors first.

@@ -156,3 +156,85 @@ def test_list_instances_requires_auth(client):
 def test_get_pricing_requires_auth(client):
     response = client.get("/api/v1/gpu/pricing", params={"vendor": "AWS", "gpu_type": "A100-80GB"})
     assert response.status_code == 401
+
+
+def test_estimate_cost_with_hours(client, emails_to_cleanup, seeded_gpu_pricing):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    target = seeded_gpu_pricing[0]
+
+    response = client.post(
+        "/api/v1/gpu/estimate",
+        json={"vendor": target["vendor"], "gpu_type": target["gpu_type"], "hours": 10},
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["estimated_hours"] == 10
+    assert body["estimated_cost_usd"] == target["price_per_hour_usd"] * 10
+
+
+def test_estimate_cost_with_training_params(client, emails_to_cleanup, seeded_gpu_pricing):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    target = seeded_gpu_pricing[0]
+
+    response = client.post(
+        "/api/v1/gpu/estimate",
+        json={
+            "vendor": target["vendor"],
+            "gpu_type": target["gpu_type"],
+            "methodology": "lora",
+            "num_epochs": 3,
+            "dataset_row_count": 1000,
+            "batch_size": 4,
+            "gradient_accumulation_steps": 1,
+        },
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    # total_steps = ceil(1000 * 3 / 4) = 750, seconds_per_step (lora) = 1.8s -> 0.375 hours
+    assert body["estimated_hours"] == 0.375
+    assert body["estimated_cost_usd"] == round(0.375 * target["price_per_hour_usd"], 2)
+
+
+def test_estimate_cost_missing_params_returns_422(client, emails_to_cleanup, seeded_gpu_pricing):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    target = seeded_gpu_pricing[0]
+
+    response = client.post(
+        "/api/v1/gpu/estimate",
+        json={"vendor": target["vendor"], "gpu_type": target["gpu_type"], "num_epochs": 3},
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 422, response.text
+
+
+def test_estimate_cost_not_found(client, emails_to_cleanup):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+
+    response = client.post(
+        "/api/v1/gpu/estimate",
+        json={"vendor": "NoSuchVendor", "gpu_type": "NoSuchType", "hours": 5},
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 404, response.text
+
+
+def test_estimate_cost_requires_auth(client):
+    response = client.post(
+        "/api/v1/gpu/estimate",
+        json={"vendor": "AWS", "gpu_type": "A100-80GB", "hours": 5},
+    )
+    assert response.status_code == 401

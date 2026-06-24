@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
@@ -141,6 +142,9 @@ export function ConfigBuilder() {
     ? (methodologyParam as (typeof METHODOLOGY_VALUES)[number])
     : DEFAULT_VALUES.methodology
 
+  const initialGpuType = searchParams.get("gpu_type") ?? DEFAULT_VALUES.gpu_type
+  const initialCloudVendor = searchParams.get("cloud_vendor") ?? DEFAULT_VALUES.cloud_vendor
+
   const {
     register,
     handleSubmit,
@@ -150,7 +154,12 @@ export function ConfigBuilder() {
     formState: { errors },
   } = useForm<ConfigFormValues>({
     resolver: zodResolver(configSchema),
-    defaultValues: { ...DEFAULT_VALUES, methodology: initialMethodology },
+    defaultValues: {
+      ...DEFAULT_VALUES,
+      methodology: initialMethodology,
+      gpu_type: initialGpuType,
+      cloud_vendor: initialCloudVendor,
+    },
   })
 
   const methodology = watch("methodology")
@@ -439,9 +448,14 @@ export function ConfigBuilder() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Compute (optional)</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle>Compute (optional)</CardTitle>
+            <Button type="button" variant="outline" size="sm" render={<Link href="/gpu-selector" />}>
+              Compare GPUs
+            </Button>
+          </div>
           <CardDescription>
-            Leave blank to decide later — full GPU selection lands in a future task.
+            Leave blank to decide later, or compare GPU instances across vendors first.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -452,7 +466,7 @@ export function ConfigBuilder() {
             <Input
               id="cloud_vendor"
               type="text"
-              placeholder="e.g. aws"
+              placeholder="e.g. AWS"
               {...register("cloud_vendor")}
             />
           </ParameterField>

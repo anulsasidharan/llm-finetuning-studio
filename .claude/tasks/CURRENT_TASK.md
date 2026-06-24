@@ -2,111 +2,110 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE2-014
-## TASK NAME: Frontend GPU Selector page
+## TASK ID: PHASE2-015
+## TASK NAME: Frontend Cost Estimator page
 ## STATUS: ⬜ TODO
 ## ASSIGNED PHASE: Phase 2, Week 4
-## BRANCH: feat/PHASE2-014-gpu-selector (not yet cut)
+## BRANCH: feat/PHASE2-015-cost-estimator (not yet cut)
 
 ## OBJECTIVE
 Per BACKLOG.md and CLAUDE.md's Core Capabilities list — build the
-Multi-cloud GPU Selector: compare and launch across AWS, GCP, Azure, RunPod,
-Lambda Labs.
+Cost Forecaster: pre-flight cost estimation before any training job, at
+`app/(dashboard)/cost-estimator/page.tsx`.
 
 ## CONTEXT FROM PRIOR SESSIONS
-- **Unlike PHASE2-013 (pure frontend), this task needs real backend work
-  first** — confirmed no `GET /gpu/instances`, `GET /gpu/pricing`, or
-  `POST /gpu/estimate` route exists yet (`apps/backend/api/v1/routes/` only
-  has `auth.py`, `datasets.py`, `experiments.py`, `jobs.py`, `models.py` — no
-  `gpu.py`). This mirrors PHASE2-012's "built ground-up" shape, not
-  PHASE2-013's "data/component already existed" shape.
-- `apps/backend/models/gpu_pricing.py` (ORM model) already exists, and the
-  `gpu_pricing` table was already created + seeded by
-  `apps/backend/scripts/seed_data.py` back in PHASE1-WEEK2-013 — confirmed
-  via the Alembic migration `5d716f49b7ac_add_model_catalog_and_gpu_pricing_tables.py`.
-  Check that model's actual columns before designing
-  `schemas/gpu.py`/`services/gpu_service.py` — don't assume shape from
-  CLAUDE.md's route table alone.
-- `apps/frontend/components/gpu/` and `apps/frontend/app/(dashboard)/gpu-selector/`
-  are both **empty directories** (no files at all yet) — same
-  "sidebar/scaffold built ahead of pages" pattern as `methodology/` was
-  before PHASE2-013; not a sign anything is half-built. Sidebar already
-  links to `/gpu-selector` (`components/layout/Sidebar.tsx`).
-- CLAUDE.md's section 9 lists real RunPod/Lambda Labs API doc links — but
-  PHASE3-001 ("GPU pricing service — RunPod + Lambda Labs API integration")
-  is a *separate*, later backlog item. Don't scope-creep into live cloud API
-  calls here; PHASE2-014 should read from the already-seeded `gpu_pricing`
-  table, same as `models.py`'s catalog routes read from `model_catalog`.
-- Generated frontend types (`types/api-schema.d.ts`/`types/index.ts`) won't
-  have GPU response shapes until the backend schema exists and
-  `scripts/export_openapi.py` + `npm run generate:types` are rerun — same
-  codegen pipeline already used for every other resource (see
-  PHASE1-WEEK3-008's memory entry).
+- **PHASE2-014 (GPU Selector) deliberately did NOT build `POST /gpu/estimate`**
+  even though CLAUDE.md section 5 lists it alongside `/gpu/instances` and
+  `/gpu/pricing` — that route's real cost-projection logic (estimated hours ×
+  price, possibly factoring num_epochs/dataset size from training_config) is
+  this task's natural home, not the GPU Selector's. Build it now as part of
+  this task: `schemas/gpu.py` would gain a `CostEstimateRequest`/
+  `CostEstimateResponse` pair, `services/gpu_service.py` gains an
+  `estimate_cost(...)` function, `api/v1/routes/gpu.py` gains
+  `POST /gpu/estimate`. Re-run `scripts/export_openapi.py` +
+  `npm run generate:types` afterward (same pipeline used in PHASE2-014).
+- `apps/backend/schemas/gpu.py` already has `GpuPricingResponse(id, vendor,
+  gpu_type, vram_gb, price_per_hour_usd)` and `services/gpu_service.py` has
+  `list_instances(db, vendor=None)` / `get_pricing(vendor, gpu_type, db)` —
+  reuse `get_pricing` internally for the estimate lookup rather than
+  duplicating the query.
+- `apps/frontend/hooks/useGPUPricing.ts` (calls `GET /api/v1/gpu/instances`)
+  and `components/gpu/{GPUCard,VendorFilter,CostCard}.tsx` already exist from
+  PHASE2-014 — `CostCard.tsx` today does a **client-side-only** multiplication
+  (`price_per_hour_usd * hours`) for fixed 1hr/8hr/24hr/1-week projections, no
+  backend call. Decide whether this task replaces that with a real
+  `POST /gpu/estimate` call (e.g. factoring `num_epochs`/dataset size into an
+  actual training-duration estimate, which client-side multiplication cannot
+  do) or keeps `CostCard` as-is and adds a separate, more detailed estimator
+  page. Don't guess — confirm scope with the user before writing code if it's
+  not obvious from how `fine_tune_jobs.estimated_cost_usd` is meant to be
+  populated.
+- `app/(dashboard)/cost-estimator/` is an **empty directory** (no files yet) —
+  same "scaffold built ahead of pages" pattern as `gpu-selector/` was before
+  PHASE2-014.
+- `ConfigBuilder.tsx`'s "Compute (optional)" card now has a "Compare GPUs"
+  button (`Button render={<Link href="/gpu-selector" />}`) — consider whether
+  this task adds a similar link/CTA to `/cost-estimator`, and whether cost
+  estimation should happen *before* job creation (pre-flight, per CLAUDE.md)
+  by reading the in-progress form's `gpu_type`/methodology/num_epochs via
+  query params, mirroring how `/gpu-selector` and `/methodology` both write
+  query params that `ConfigBuilder` reads back.
 - No browser-automation tool is available in this environment (confirmed
-  repeatedly across PHASE2-010/011/012/013) — expect the same verification
-  fallback: `npm run lint`/`npm run build`, curl against a local backend, and
-  the SSR-HTML-check fallback for anything client-interaction-only.
+  repeatedly through PHASE2-014) — expect the same verification fallback:
+  `npm run lint`/`npm run build`, curl against a local backend, and the
+  SSR-HTML-check fallback for anything client-interaction-only.
 
-## PREVIOUS TASK SUMMARY (PHASE2-013)
-Completed 2026-06-24. The task's flagged open design question (what drives
-"auto-recommendation") was resolved via `AskUserQuestion` before writing any
-code: the user chose **"short questionnaire only"** — a small client-side
-form (goal: plain task vs. preference alignment; VRAM budget: low/medium/
-high; approx. dataset row/pair count) with no dependency on already-uploaded
-datasets via `useDatasets`.
+## PREVIOUS TASK SUMMARY (PHASE2-014)
+Completed 2026-06-24. Built backend-to-frontend from a blank slate (no GPU
+routes existed yet), mirroring `models.py`'s catalog pattern:
 
-Built: `apps/frontend/lib/methodology-recommendation.ts` — pure
-`recommendMethodology({goal, vramBudget, datasetRows})` function (no React,
-fully unit-testable in principle) returning `{methodology, belowMinSamples}`.
-Rule: `alignment` goal maps to RLHF (only if `vramBudget==="high"` AND rows
->= 10,000) / DPO (medium-or-high VRAM) / ORPO (low VRAM); `plain_task` goal
-maps to SFT (high VRAM) / LoRA (medium) / QLoRA (low). Keeps its own
-`MIN_SAMPLES: Record<Methodology, number>` map as plain numbers, deliberately
-separate from `lib/methodology-data.ts`'s display-string `minSamples` field
-(CURRENT_TASK.md's prior note said don't duplicate that file — this is a
-parallel derived concern, not a duplicate of the display copy).
+**Backend:** `schemas/gpu.py` (`GpuPricingResponse`), `services/gpu_service.py`
+(`list_instances(db, vendor=None)` — full list ordered by price ascending,
+optional vendor filter; `get_pricing(vendor, gpu_type, db)` — single-row
+lookup, 404 via `NotFoundError` if missing), `api/v1/routes/gpu.py`
+(`GET /instances?vendor=`, `GET /pricing?vendor=&gpu_type=`), registered in
+`api/v1/__init__.py` under `/gpu` prefix. Deliberately did **not** build
+`POST /gpu/estimate` — judged that real cost-projection math belongs to
+PHASE2-015 (Cost Estimator)/PHASE3-003 (Cost Forecaster service), not the
+GPU browsing/comparison page. 6 new tests in `tests/test_gpu_routes.py`
+(list, vendor-filter, pricing-found, pricing-404, both require-auth) — full
+backend suite 132/132 passing locally (required spinning up `docker compose
+up -d postgres redis minio` since no containers existed yet this session,
+then `alembic upgrade head` against the fresh DB, then
+`scripts/seed_data.py`).
 
-`components/training/MethodologyCard.tsx` got one additive change: a new
-optional `recommended?: boolean` prop rendering a second "Recommended"
-(`variant="secondary"`) badge alongside the existing "Selected" badge — reused
-as-is otherwise, both in `ConfigBuilder.tsx` (always `recommended={false}`,
-unchanged behavior) and the new wizard.
+**Frontend:** `hooks/useGPUPricing.ts` (TanStack Query wrapping
+`GET /api/v1/gpu/instances`), `components/gpu/GPUCard.tsx` (selectable card,
+same selected-state pattern as `MethodologyCard`), `components/gpu/
+VendorFilter.tsx` (button toggle group, "All vendors" + one button per
+distinct vendor from the fetched data), `components/gpu/CostCard.tsx` (pure
+client-side `price_per_hour_usd × hours` for 1hr/8hr/24hr/1-week — no backend
+call, see note above for PHASE2-015 to revisit), `components/gpu/
+GPUSelector.tsx` (holds `selectedVendor`/`selectedKey` state, renders
+VendorFilter + GPUCard grid + CostCard for the selection, "Continue to
+training config" button doing `router.push(`/config?gpu_type=...&cloud_vendor=...`)`
+— same query-param-handoff pattern PHASE2-013 established for methodology).
+New `app/(dashboard)/gpu-selector/page.tsx` (no longer an empty directory).
 
-New `components/training/MethodologyRecommender.tsx` (`"use client"`): the
-questionnaire (Select x2 + Input) feeds `recommendMethodology` reactively via
-`useMemo`; an `Alert` banner shows the live recommendation with a "Use
-recommended" button; a destructive `Alert` appears only when
-`belowMinSamples` is true; the full `METHODOLOGY_INFO` grid renders below
-with independent click-to-select state (`selected`, initialized from the
-recommendation at mount, then fully user-controlled — does not silently
-snap back when the questionnaire changes, only the "Recommended" badge and
-banner move). A "Continue to training config" button does
-`router.push(\`/config?methodology=${selected}\`)`.
+**Closed the loop into Config Builder:** `ConfigBuilder.tsx` now also reads
+`gpu_type`/`cloud_vendor` from `useSearchParams()` to seed those two form
+defaults (same `?? DEFAULT_VALUES.x` fallback pattern as methodology). The
+"Compute (optional)" card's copy changed from "full GPU selection lands in a
+future task" to a "Compare GPUs" button (`Button render={<Link
+href="/gpu-selector" />}` — base-ui `render` prop, not `asChild`, per the
+standing codebase convention) alongside the existing plain-text gpu_type/
+cloud_vendor inputs (kept as a manual-override fallback, not removed).
 
-New `app/(dashboard)/methodology/page.tsx` — same `PageContainer` + heading
-pattern as every other dashboard page, no longer an empty directory.
-
-Closed the loop into the existing Config Builder: `ConfigBuilder.tsx` now
-reads `useSearchParams().get("methodology")` to seed `useForm`'s
-`defaultValues.methodology` (validated against the existing
-`METHODOLOGY_VALUES` tuple, falling back to the prior hardcoded `"lora"`
-default if absent/invalid) — this is the **first** `useSearchParams` call in
-this codebase outside the `(auth)` route group's login/register pages. Per
-Next.js 16's prerendering rules (confirmed via
-`node_modules/next/dist/docs/.../use-search-params.md`, same as
-`(auth)/login/page.tsx` already does), a static page calling
-`useSearchParams` from a Client Component must be wrapped in `<Suspense>` or
-the production build fails — added `<Suspense fallback={null}>` around
-`<ConfigBuilder />` in `app/(dashboard)/config/page.tsx` to match.
-
-Verified via `npm run build` (clean; `/methodology` and `/config` both still
-prerender as static `○` routes) and the established SSR-HTML-grep fallback
-(no browser tool in this environment): confirmed the built
-`.next/server/app/methodology.html` contains the questionnaire copy, the
-recommendation banner, the CTA, and all six methodology labels
-(SFT/LoRA/QLoRA/DPO/ORPO/RLHF), and that the default questionnaire state
-(plain task + medium VRAM) recommends LoRA as designed. `npm run lint` is
-clean (one pre-existing, unrelated React Compiler warning on
-`ConfigBuilder.tsx`'s `watch()` call, present before this task). Not yet
-committed/pushed — branch `feat/PHASE2-013-methodology-selector` was already
+Verified end-to-end against a live backend (not just `npm run build`): with
+containers up and `seed_data.py` run, curled `GET /gpu/instances` (returned
+all 10 seeded rows sorted by price ascending), `GET /gpu/instances?vendor=AWS`
+(returned only the 2 AWS rows), and `GET /gpu/pricing?vendor=RunPod&gpu_type=A100-80GB`
+(returned the single matching row) with a real JWT. `npm run build` clean,
+`/gpu-selector` prerenders as a static `○` route; SSR HTML for that route
+contains the page heading/copy (data itself is client-fetched, not in static
+HTML, same as every other React-Query-driven page in this app). `npm run
+lint` clean except the one pre-existing unrelated `ConfigBuilder.tsx`
+React Compiler warning. Test users created during manual curl verification
+were cleaned up via `docker exec fts_postgres psql ... DELETE FROM users`.
+Not yet committed — branch `feat/PHASE2-014-gpu-selector` was already
 checked out at session start per the git status snapshot.

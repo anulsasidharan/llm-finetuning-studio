@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+
 import { PageContainer } from "@/components/layout/PageContainer"
 import { ConfigBuilder } from "@/components/training/ConfigBuilder"
 
@@ -9,7 +11,9 @@ export default function ConfigPage() {
         Choose a methodology, base model, and training parameters to create a fine-tune job.
       </p>
       <div className="mt-6">
-        <ConfigBuilder />
+        <Suspense fallback={null}>
+          <ConfigBuilder />
+        </Suspense>
       </div>
     </PageContainer>
   )

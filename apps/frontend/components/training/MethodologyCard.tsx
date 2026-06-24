@@ -11,10 +11,12 @@ export function MethodologyCard({
   info,
   selected,
   onSelect,
+  recommended = false,
 }: {
   info: MethodologyInfo
   selected: boolean
   onSelect: () => void
+  recommended?: boolean
 }) {
   return (
     <Card
@@ -36,7 +38,10 @@ export function MethodologyCard({
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <CardTitle>{info.label}</CardTitle>
-          {selected ? <Badge>Selected</Badge> : null}
+          <div className="flex items-center gap-1.5">
+            {recommended ? <Badge variant="secondary">Recommended</Badge> : null}
+            {selected ? <Badge>Selected</Badge> : null}
+          </div>
         </div>
         <CardDescription>{info.keyDifferentiator}</CardDescription>
       </CardHeader>

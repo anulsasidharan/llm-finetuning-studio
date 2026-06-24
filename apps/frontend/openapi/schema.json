@@ -1848,6 +1848,11 @@
           "total_rows_upserted": {
             "type": "integer",
             "title": "Total Rows Upserted"
+          },
+          "cached": {
+            "type": "boolean",
+            "title": "Cached",
+            "default": false
           }
         },
         "type": "object",

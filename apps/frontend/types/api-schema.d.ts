@@ -715,6 +715,11 @@ export interface components {
             };
             /** Total Rows Upserted */
             total_rows_upserted: number;
+            /**
+             * Cached
+             * @default false
+             */
+            cached: boolean;
         };
         /** GpuPricingSyncVendorResult */
         GpuPricingSyncVendorResult: {

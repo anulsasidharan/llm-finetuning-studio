@@ -21,6 +21,7 @@ async def run_sync() -> None:
     log.info(
         "sync_gpu_pricing.completed",
         total_rows_upserted=result.total_rows_upserted,
+        cached=result.cached,
         vendors={vendor: payload.model_dump() for vendor, payload in result.vendors.items()},
     )
 

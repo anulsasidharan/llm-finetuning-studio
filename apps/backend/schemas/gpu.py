@@ -62,3 +62,4 @@ class GpuPricingSyncVendorResult(BaseModel):
 class GpuPricingSyncResponse(BaseModel):
     vendors: dict[str, GpuPricingSyncVendorResult]
     total_rows_upserted: int
+    cached: bool = False

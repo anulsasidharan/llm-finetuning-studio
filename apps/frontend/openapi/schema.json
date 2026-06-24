@@ -782,6 +782,32 @@
         ]
       }
     },
+    "/api/v1/gpu/sync-pricing": {
+      "post": {
+        "tags": [
+          "gpu"
+        ],
+        "summary": "Sync Pricing",
+        "operationId": "sync_pricing_api_v1_gpu_sync_pricing_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GpuPricingSyncResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/jobs": {
       "get": {
         "tags": [
@@ -1809,6 +1835,66 @@
           "price_per_hour_usd"
         ],
         "title": "GpuPricingResponse"
+      },
+      "GpuPricingSyncResponse": {
+        "properties": {
+          "vendors": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GpuPricingSyncVendorResult"
+            },
+            "type": "object",
+            "title": "Vendors"
+          },
+          "total_rows_upserted": {
+            "type": "integer",
+            "title": "Total Rows Upserted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vendors",
+          "total_rows_upserted"
+        ],
+        "title": "GpuPricingSyncResponse"
+      },
+      "GpuPricingSyncVendorResult": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "skipped",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "offers_fetched": {
+            "type": "integer",
+            "title": "Offers Fetched",
+            "default": 0
+          },
+          "rows_upserted": {
+            "type": "integer",
+            "title": "Rows Upserted",
+            "default": 0
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "GpuPricingSyncVendorResult"
       },
       "HTTPValidationError": {
         "properties": {

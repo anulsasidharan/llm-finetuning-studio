@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller, useForm } from "react-hook-form"
 import { z } from "zod"
@@ -128,10 +128,18 @@ function buildTrainingConfig(values: ConfigFormValues): Record<string, unknown> 
 
 export function ConfigBuilder() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const modelCatalogQuery = useModelCatalog()
   const datasetsQuery = useDatasets()
   const createJobMutation = useCreateJob()
   const [formError, setFormError] = useState<string | null>(null)
+
+  const methodologyParam = searchParams.get("methodology")
+  const initialMethodology = METHODOLOGY_VALUES.includes(
+    methodologyParam as (typeof METHODOLOGY_VALUES)[number]
+  )
+    ? (methodologyParam as (typeof METHODOLOGY_VALUES)[number])
+    : DEFAULT_VALUES.methodology
 
   const {
     register,
@@ -142,7 +150,7 @@ export function ConfigBuilder() {
     formState: { errors },
   } = useForm<ConfigFormValues>({
     resolver: zodResolver(configSchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: { ...DEFAULT_VALUES, methodology: initialMethodology },
   })
 
   const methodology = watch("methodology")

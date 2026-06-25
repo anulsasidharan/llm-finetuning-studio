@@ -2,90 +2,92 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE3-005
-## TASK NAME: training_engine/evaluation/benchmark.py — MMLU/HellaSwag/ARC
+## TASK ID: PHASE3-006
+## TASK NAME: training_engine/evaluation/compare.py — base vs fine-tuned
 ## STATUS: ✅ DONE
 ## ASSIGNED PHASE: Phase 3, Week 9
-## BRANCH: feat/PHASE3-005-eval-benchmark
+## BRANCH: feat/PHASE3-006-eval-compare
 
 ## NEXT TASK
 Pick the next item from BACKLOG.md PHASE 3 — Cloud, Evaluation & Deploy. Natural
-next step is PHASE3-006 (training_engine/evaluation/compare.py — base vs
-fine-tuned), which can reuse `run_benchmark()`'s dual model_id/loaded-model
-input directly. PHASE3-007 (Frontend Evaluation Playground) depends on
-PHASE3-006.
+next step is PHASE3-007 (Frontend: Evaluation Playground — side-by-side
+comparison), which depends on PHASE3-006 (this task) and should call into a
+future `POST /eval/compare` backend route — no backend route exists yet for
+either `compare.py` or `benchmark.py`, deferred per the established
+PHASE2-002-through-006 standalone-module-before-Celery-wiring precedent.
+Alternatively, PHASE3-008 (training_engine/export/merge_lora.py) is also
+unblocked (only depends on PHASE2 complete) if frontend work isn't next.
 
 ## SUMMARY (this session, 2026-06-24)
-**Scope**: a single standalone `training_engine/evaluation/benchmark.py`
-module (not a `BaseTrainer` subclass — benchmarking isn't training), no
-backend route/Celery wiring yet — same scoping precedent as PHASE2's trainer
-classes (PHASE2-002 through 006) landing standalone before PHASE2-009 wired
-any of them into a Celery task. `POST /eval/benchmark` (in CLAUDE.md's route
-table) is not built; deferred to a future wiring task.
+**Scope**: a single standalone `training_engine/evaluation/compare.py` module
+(not a `BaseTrainer` subclass, same precedent as `benchmark.py`), no backend
+route/Celery wiring — `POST /eval/compare` (CLAUDE.md's route table) remains
+unbuilt, deferred to a future wiring task alongside `POST /eval/benchmark`.
 
-**Implementation**: `run_benchmark(*, benchmarks, model_id=None, model=None,
-tokenizer=None, device=None, batch_size=8, num_fewshot=None, limit=None,
-trust_remote_code=False)` wraps `lm-eval` (lm-evaluation-harness — already
-pinned `lm-eval==0.4.2`/`evaluate==0.4.2` in requirements.txt since PHASE1,
-never previously imported anywhere in this repo). Requires exactly one of
-`model_id` (loads fresh via `lm_eval.models.huggingface.HFLM(pretrained=
-model_id, ...)`) or both `model`+`tokenizer` (an already-loaded pair passed
-straight into `HFLM(pretrained=<model instance>, tokenizer=..., ...)`) — this
-dual-mode input is deliberate so PHASE3-006's compare.py can reuse it
-unchanged to benchmark an in-memory fine-tuned model without round-tripping
-through disk.
+**Implementation**: `compare_models(*, prompts, base_model_id=None,
+base_model=None, base_tokenizer=None, finetuned_model_id=None,
+finetuned_model=None, finetuned_tokenizer=None, benchmarks=None, device=None,
+max_new_tokens=256, num_fewshot=None, limit=None, trust_remote_code=False)`
+covers both halves of CLAUDE.md's "side-by-side base vs fine-tuned model
+comparison with benchmarks" Evaluation Playground bullet in one function:
 
-`BENCHMARK_TASKS = {"mmlu": ("mmlu",), "hellaswag": ("hellaswag",), "arc":
-("arc_easy", "arc_challenge")}` maps friendly names to real lm-eval task/group
-tags — verified by reading the actually-installed package's
-`tasks/mmlu/default/_mmlu.yaml`/`tasks/arc/*.yaml` directly (lm_eval IS
-pip-installed in this dev venv, unlike trl, so this was direct source
-inspection, not a GitHub fetch — same "verify real third-party API shape
-before coding" rule as PHASE2-006/PHASE3-001/PHASE3-004, just via a different
-verification method this time). Calls `lm_eval.simple_evaluate(model=<HFLM
-instance>, tasks=[...], num_fewshot=, batch_size=, device=, limit=,
-log_samples=False)` and reshapes its flat `results["results"][task_name]`
-dict into one entry per requested benchmark name (`arc` nests both
-`arc_easy`/`arc_challenge` sub-dicts; `mmlu`/`hellaswag` are flat). New
-`BenchmarkError(ValueError)` raised for: empty `benchmarks`, unknown benchmark
-name, and neither/both of `model_id`/`model`+`tokenizer` supplied.
+1. **Side-by-side generation** (always runs): each side (`base_*`/
+   `finetuned_*`) accepts either a `*_model_id` (loaded fresh via a new
+   `_load_model_and_tokenizer()`, mirrors `BaseTrainer.load_model()`/
+   `load_tokenizer()`'s dtype/device-map logic but standalone since
+   `compare.py` isn't a trainer) or an already-loaded `*_model`/`*_tokenizer`
+   pair — same dual-input contract `run_benchmark()` uses (validated by a new
+   `_resolve_side()` helper, one call per side, parameterized by a `label`
+   string so the `CompareError` message names the right side). Generates one
+   completion per prompt from each side via `model.generate()` (device read
+   back off the model itself via `next(model.parameters()).device`, not the
+   resolved comparison device — robust to a caller-supplied already-loaded
+   model living on a different device than `_load_model_and_tokenizer()`
+   would have picked). Returns `completions: [{prompt, base_completion,
+   finetuned_completion}, ...]`.
+2. **Benchmark deltas** (only when `benchmarks` is given): calls the existing
+   `run_benchmark()` (PHASE3-005) **twice**, once per side, passing each
+   side's already-loaded model/tokenizer via `run_benchmark`'s loaded-model
+   branch (`model=`/`tokenizer=` kwargs) — deliberately avoids letting
+   `run_benchmark` reload either model from disk a second time when the
+   caller supplied a `model_id`, since `compare_models` already loaded it for
+   generation. A new `_diff_metrics()` recursively computes
+   finetuned-minus-base deltas for numeric leaves shared by both sides'
+   metrics dicts (handles `arc`'s nested `{arc_easy: {...}, arc_challenge:
+   {...}}` shape from `benchmark.py`'s `_extract_metrics()` the same way it
+   handles flat `mmlu`/`hellaswag` dicts). Result gains a `benchmarks: {base,
+   finetuned, delta}` key only when requested — omitted entirely otherwise.
 
-**Landmine hit and fixed**: `lm_eval` → `evaluate` → `from datasets import
-Dataset` hits the exact same local-`datasets`-package naming collision
-already flagged for `trl` (MEMORY.md, since PHASE1-WEEK3-002/PHASE2-002) —
-confirmed live, a bare `import lm_eval` in this venv raises `ImportError:
-cannot import name 'Dataset' from 'datasets'` pointing at the local package.
-Fixed identically to every other TRL/PEFT-adjacent import in this codebase:
-new lazy `_get_lm_eval()`/`_get_hflm_cls()` helpers in `benchmark.py` both
-call the existing `utils.hf_datasets.ensure_hf_datasets_loaded()` before
-importing `lm_eval`/`HFLM` — no change needed to `hf_datasets.py` itself, it
-already generalizes to any HF-`datasets`-dependent import.
+New `CompareError(ValueError)` raised only for: empty `prompts`, and
+neither/both of `{label}_model_id`/`{label}_model`+`{label}_tokenizer`
+supplied, for either side independently.
 
-**Tests**: 10 new in `training_engine/tests/test_benchmark.py`, all mocking
-`_get_lm_eval`/`_get_hflm_cls` entirely (never imports real `lm_eval`/loads a
-real model) — rejects empty/unsupported benchmarks, rejects neither/both of
-model_id vs loaded-model, constructs `HFLM` correctly for both input modes,
-expands `arc` to two tasks and nests its metrics, passes `num_fewshot`/`limit`
-through, defaults device via `_resolve_device()` when not given, missing task
-in raw results defaults to `{}`.
+**Tests**: 10 new in `training_engine/tests/test_compare.py`, all mocking
+`_load_model_and_tokenizer`/`_generate`/`run_benchmark` at the module boundary
+(never imports real `torch`/`transformers` model loading or generation) —
+rejects empty prompts, rejects neither/both model_id vs loaded-model
+independently for each side, loads both sides and builds completions from
+model_ids, skips loading entirely when both sides are pre-loaded, includes
+`benchmarks.delta` only when `benchmarks` is passed (omitted key otherwise),
+defaults device via `_resolve_device()` when not given, plus a direct
+`_diff_metrics()` unit test for the nested-arc-style-dict case.
 
-**Verification**: full training_engine suite 121/121 passing (111 prior + 10
-new), `ruff check .` clean, `ruff format --check .` shows only the same
-pre-existing CRLF/LF drift across unrelated files already flagged in
-MEMORY.md/prior sessions — neither new file (`evaluation/benchmark.py`,
-`tests/test_benchmark.py`) is in that list. `evaluation/__init__.py`
-(previously an empty placeholder) now re-exports `BENCHMARK_TASKS`/
-`BenchmarkError`/`run_benchmark`, mirroring `trainers/__init__.py`'s
-re-export pattern.
+**Verification**: full training_engine suite 131/131 passing (121 prior + 10
+new), `ruff check .` clean (one `UP038` violation caught and fixed —
+`isinstance(x, (int, float))` → `isinstance(x, int | float)`), `ruff format
+--check .` shows only the same pre-existing CRLF/LF drift across unrelated
+files already flagged in MEMORY.md/PHASE3-005's summary — neither new file
+(`evaluation/compare.py`, `tests/test_compare.py`) is in that list.
+`evaluation/__init__.py` now also re-exports `CompareError`/`compare_models`
+alongside the existing `BENCHMARK_TASKS`/`BenchmarkError`/`run_benchmark`.
 
-Not yet committed — branch `feat/PHASE3-005-eval-benchmark` was already
-checked out at session start.
+Not yet committed — branch `feat/PHASE3-006-eval-compare` was already checked
+out at session start.
 
 ## GOTCHAS LOGGED (see MEMORY.md for full detail)
-- The "leaked Bash cwd breaks the `.claude/hooks/lint.py` PostToolUse hook"
-  gotcha (logged repeatedly since PHASE2-014/PHASE2-015/PHASE3-002) recurred
-  again this session after `cd training_engine/.venv/Lib/site-packages/
-  lm_eval && ...` to inspect the installed package's real source — reset with
-  a plain `cd <repo-root> && pwd` each time, reactively, same as PHASE3-002.
-  Worth defaulting to the subshell form (`(cd dir && cmd)`) proactively next
-  time to skip the extra round-trip, as already flagged in MEMORY.md.
+- No new gotchas this session — the only landmine relevant to this module
+  (lm_eval/`datasets` local-package naming collision) was already solved
+  inside `benchmark.py`'s `_get_lm_eval()`/`_get_hflm_cls()`, reused unchanged
+  via the existing `run_benchmark()` import; `compare.py` itself only touches
+  `transformers`/`torch` directly (no `datasets`-dependent import), so the
+  collision never triggers in this file.

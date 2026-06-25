@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from models.dataset import Dataset
+    from models.eval_job import EvalJob
     from models.experiment import Experiment
     from models.fine_tune_job import FineTuneJob
     from models.model_registry import ModelRegistry
@@ -33,3 +34,4 @@ class User(Base):
     fine_tune_jobs: Mapped[list["FineTuneJob"]] = relationship(back_populates="user")
     experiments: Mapped[list["Experiment"]] = relationship(back_populates="user")
     model_registry_entries: Mapped[list["ModelRegistry"]] = relationship(back_populates="user")
+    eval_jobs: Mapped[list["EvalJob"]] = relationship(back_populates="user")

@@ -16,6 +16,7 @@ celery.conf.update(
     enable_utc=True,
     task_routes={
         "tasks.training_tasks.*": {"queue": "training"},
+        "tasks.eval_tasks.*": {"queue": "training"},
         "tasks.export_tasks.*": {"queue": "export"},
     },
     task_default_queue="default",

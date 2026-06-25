@@ -21,6 +21,8 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+from evaluation.benchmark import run_benchmark
+from evaluation.compare import compare_models
 from trainers.base_trainer import BaseTrainer, TrainerError
 from trainers.dpo_trainer import DPOTrainer
 from trainers.lora_trainer import LoRATrainer
@@ -28,6 +30,7 @@ from trainers.orpo_trainer import ORPOTrainer
 from trainers.qlora_trainer import QLoRATrainer
 from trainers.sft_trainer import SFTTrainer
 from utils.callbacks import MetricsCallback
+from utils.eval_status import mark_eval_completed, mark_eval_failed, mark_eval_running
 from utils.gpu_monitor import GPUMonitor
 from utils.job_status import (
     MetricsPersistCallback,
@@ -129,4 +132,51 @@ def run_training_job(
     mark_job_completed(
         job_id, train_loss=metrics.get("train_loss"), eval_loss=metrics.get("eval_loss")
     )
+    return result
+
+
+@celery_app.task(name="training_engine.tasks.run_eval_job")
+def run_eval_job(
+    *,
+    eval_id: str,
+    eval_type: str,
+    base_model_id: str,
+    finetuned_model_id: str | None = None,
+    prompts: list[str] | None = None,
+    benchmarks: list[str] | None = None,
+    max_new_tokens: int | None = None,
+    num_fewshot: int | None = None,
+    sample_limit: float | None = None,
+) -> dict[str, Any]:
+    mark_eval_running(eval_id)
+
+    try:
+        if eval_type == "compare":
+            result = compare_models(
+                prompts=prompts or [],
+                base_model_id=base_model_id,
+                finetuned_model_id=finetuned_model_id,
+                benchmarks=benchmarks,
+                max_new_tokens=max_new_tokens or 256,
+                num_fewshot=num_fewshot,
+                limit=sample_limit,
+            )
+        elif eval_type == "benchmark":
+            result = run_benchmark(
+                benchmarks=benchmarks or [],
+                model_id=base_model_id,
+                num_fewshot=num_fewshot,
+                limit=sample_limit,
+            )
+        else:
+            error = f"Unsupported eval_type={eval_type!r}."
+            logger.error("eval_job_unsupported_type", eval_id=eval_id, eval_type=eval_type)
+            mark_eval_failed(eval_id, error)
+            return {"status": "failed", "eval_id": eval_id, "error": error}
+    except Exception as exc:  # pragma: no cover - real eval failures (OOM, bad model id, etc.)
+        logger.exception("eval_job_crashed", eval_id=eval_id)
+        mark_eval_failed(eval_id, str(exc))
+        return {"status": "failed", "eval_id": eval_id, "error": str(exc)}
+
+    mark_eval_completed(eval_id, result)
     return result

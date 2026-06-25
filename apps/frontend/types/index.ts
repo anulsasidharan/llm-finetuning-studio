@@ -15,10 +15,18 @@ export type CostEstimateRequest = components["schemas"]["CostEstimateRequest"];
 export type CostEstimateResponse = components["schemas"]["CostEstimateResponse"];
 export type GpuPricingSyncResponse = components["schemas"]["GpuPricingSyncResponse"];
 export type GpuPricingSyncVendorResult = components["schemas"]["GpuPricingSyncVendorResult"];
+export type EvalJobResponse = components["schemas"]["EvalJobResponse"];
+export type EvalCompareCreate = components["schemas"]["EvalCompareCreate"];
+export type EvalBenchmarkCreate = components["schemas"]["EvalBenchmarkCreate"];
 
 export type DatasetFormat = DatasetResponse["format"];
 export type FineTuneJobStatus = FineTuneJobResponse["status"];
 export type Methodology = FineTuneJobResponse["methodology"];
+export type EvalType = EvalJobResponse["eval_type"];
+export type EvalJobStatus = EvalJobResponse["status"];
+export type EvalBenchmark = EvalCompareCreate["benchmarks"] extends (infer T)[] | null | undefined
+  ? T
+  : never;
 
 // WS /ws/training/{job_id} payloads (apps/backend/websocket/training_hub.py) — hand-written,
 // not OpenAPI-generated, since WebSocket messages aren't part of the REST schema.

@@ -8,6 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from tasks.training_tasks import dispatch_training_job
 
+from services import cloud_launch_service
+from services.cloud_launchers.base import LaunchedPod
 from services.dataset_service import get_dataset
 
 JOB_STATUS_PENDING = "pending"
@@ -90,3 +92,8 @@ async def get_job(job_id: UUID, user: User, db: AsyncSession) -> FineTuneJob:
     if job is None:
         raise NotFoundError("Fine-tune job not found.")
     return job
+
+
+async def launch_cloud_job(job_id: UUID, user: User, db: AsyncSession) -> LaunchedPod:
+    job = await get_job(job_id, user, db)
+    return await cloud_launch_service.launch_job(job)

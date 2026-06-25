@@ -5,7 +5,12 @@ from core.database import get_db
 from fastapi import APIRouter, Depends
 from models.fine_tune_job import FineTuneJob
 from models.user import User
-from schemas.job import FineTuneJobConfigResponse, FineTuneJobCreate, FineTuneJobResponse
+from schemas.job import (
+    CloudLaunchResponse,
+    FineTuneJobConfigResponse,
+    FineTuneJobCreate,
+    FineTuneJobResponse,
+)
 from services import job_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,3 +50,15 @@ async def get_job_config(
     db: AsyncSession = Depends(get_db),
 ) -> FineTuneJob:
     return await job_service.get_job(job_id, current_user, db)
+
+
+@router.post("/{job_id}/launch-cloud", response_model=CloudLaunchResponse)
+async def launch_cloud_job(
+    job_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> CloudLaunchResponse:
+    pod = await job_service.launch_cloud_job(job_id, current_user, db)
+    return CloudLaunchResponse(
+        pod_id=pod.pod_id, image_name=pod.image_name, machine_id=pod.machine_id
+    )

@@ -35,9 +35,7 @@ def _normalize_gpu_type(display_name: str, vram_gb: int) -> str:
     return name
 
 
-async def fetch_runpod_pricing(
-    api_key: str, client: httpx.AsyncClient | None = None
-) -> list[NormalizedGpuOffer]:
+async def _fetch_raw_gpu_types(api_key: str, client: httpx.AsyncClient | None = None) -> list[dict]:
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
@@ -59,7 +57,14 @@ async def fetch_runpod_pricing(
     if "errors" in payload:
         raise GpuPricingProviderError(f"RunPod GraphQL error: {payload['errors']}")
 
-    gpu_types = payload.get("data", {}).get("gpuTypes", [])
+    return payload.get("data", {}).get("gpuTypes", [])
+
+
+async def fetch_runpod_pricing(
+    api_key: str, client: httpx.AsyncClient | None = None
+) -> list[NormalizedGpuOffer]:
+    gpu_types = await _fetch_raw_gpu_types(api_key, client)
+
     offers: list[NormalizedGpuOffer] = []
     for gpu in gpu_types:
         vram_gb = gpu.get("memoryInGb")
@@ -76,3 +81,27 @@ async def fetch_runpod_pricing(
             )
         )
     return offers
+
+
+async def resolve_gpu_type_id(
+    api_key: str, gpu_type: str, client: httpx.AsyncClient | None = None
+) -> str:
+    """Reverse-resolves our normalized ``gpu_pricing.gpu_type`` string (e.g.
+    "A10080GBPCIe") back to RunPod's own raw GPU type id (e.g.
+    "NVIDIA A100 80GB PCIe") — needed because ``fetch_runpod_pricing`` only keeps
+    the normalized name for DB storage and discards RunPod's raw ``id``, but the
+    cloud launcher's ``podFindAndDeployOnDemand`` mutation requires that exact raw id
+    as its ``gpuTypeId`` input.
+    """
+    gpu_types = await _fetch_raw_gpu_types(api_key, client)
+
+    for gpu in gpu_types:
+        vram_gb = gpu.get("memoryInGb")
+        display_name = gpu.get("displayName")
+        raw_id = gpu.get("id")
+        if not vram_gb or not display_name or not raw_id:
+            continue
+        if _normalize_gpu_type(display_name, round(vram_gb)) == gpu_type:
+            return raw_id
+
+    raise GpuPricingProviderError(f"No RunPod GPU type found matching gpu_type={gpu_type!r}.")

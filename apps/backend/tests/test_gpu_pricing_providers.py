@@ -2,48 +2,48 @@ import httpx
 import pytest
 from services.gpu_pricing_providers.base import GpuPricingProviderError
 from services.gpu_pricing_providers.lambda_labs_provider import fetch_lambda_labs_pricing
-from services.gpu_pricing_providers.runpod_provider import fetch_runpod_pricing
+from services.gpu_pricing_providers.runpod_provider import fetch_runpod_pricing, resolve_gpu_type_id
 
 
 def _mock_client(handler) -> httpx.AsyncClient:
     return httpx.AsyncClient(transport=httpx.MockTransport(handler))
 
 
+_RUNPOD_GPU_TYPES_RESPONSE = {
+    "data": {
+        "gpuTypes": [
+            {
+                "id": "NVIDIA A100 80GB PCIe",
+                "displayName": "NVIDIA A100 80GB PCIe",
+                "memoryInGb": 80,
+                "securePrice": 1.99,
+                "communityPrice": 1.69,
+            },
+            {
+                "id": "NVIDIA GeForce RTX 4090",
+                "displayName": "NVIDIA GeForce RTX 4090",
+                "memoryInGb": 24,
+                "securePrice": None,
+                "communityPrice": 0.44,
+            },
+            {
+                # No price at all anywhere - must be skipped.
+                "id": "NVIDIA H100 PCIe",
+                "displayName": "NVIDIA H100 PCIe",
+                "memoryInGb": 80,
+                "securePrice": None,
+                "communityPrice": None,
+            },
+        ]
+    }
+}
+
+
 @pytest.mark.asyncio
 async def test_fetch_runpod_pricing_parses_offers():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.headers["Authorization"] == "Bearer fake-key"
-        return httpx.Response(
-            200,
-            json={
-                "data": {
-                    "gpuTypes": [
-                        {
-                            "id": "NVIDIA A100 80GB PCIe",
-                            "displayName": "NVIDIA A100 80GB PCIe",
-                            "memoryInGb": 80,
-                            "securePrice": 1.99,
-                            "communityPrice": 1.69,
-                        },
-                        {
-                            "id": "NVIDIA GeForce RTX 4090",
-                            "displayName": "NVIDIA GeForce RTX 4090",
-                            "memoryInGb": 24,
-                            "securePrice": None,
-                            "communityPrice": 0.44,
-                        },
-                        {
-                            # No price at all anywhere - must be skipped.
-                            "id": "NVIDIA H100 PCIe",
-                            "displayName": "NVIDIA H100 PCIe",
-                            "memoryInGb": 80,
-                            "securePrice": None,
-                            "communityPrice": None,
-                        },
-                    ]
-                }
-            },
-        )
+        return httpx.Response(200, json=_RUNPOD_GPU_TYPES_RESPONSE)
 
     async with _mock_client(handler) as client:
         offers = await fetch_runpod_pricing("fake-key", client=client)
@@ -76,6 +76,37 @@ async def test_fetch_runpod_pricing_raises_on_http_error():
     async with _mock_client(handler) as client:
         with pytest.raises(GpuPricingProviderError):
             await fetch_runpod_pricing("bad-key", client=client)
+
+
+@pytest.mark.asyncio
+async def test_resolve_gpu_type_id_finds_matching_raw_id():
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_RUNPOD_GPU_TYPES_RESPONSE)
+
+    async with _mock_client(handler) as client:
+        raw_id = await resolve_gpu_type_id("fake-key", "A10080GBPCIe", client=client)
+
+    assert raw_id == "NVIDIA A100 80GB PCIe"
+
+
+@pytest.mark.asyncio
+async def test_resolve_gpu_type_id_raises_when_no_match():
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=_RUNPOD_GPU_TYPES_RESPONSE)
+
+    async with _mock_client(handler) as client:
+        with pytest.raises(GpuPricingProviderError):
+            await resolve_gpu_type_id("fake-key", "Nonexistent-GPU", client=client)
+
+
+@pytest.mark.asyncio
+async def test_resolve_gpu_type_id_raises_on_http_error():
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json={"error": "unauthorized"})
+
+    async with _mock_client(handler) as client:
+        with pytest.raises(GpuPricingProviderError):
+            await resolve_gpu_type_id("bad-key", "A10080GBPCIe", client=client)
 
 
 @pytest.mark.asyncio

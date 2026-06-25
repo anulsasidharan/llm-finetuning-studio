@@ -380,6 +380,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/{job_id}/launch-cloud": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Launch Cloud Job */
+        post: operations["launch_cloud_job_api_v1_jobs__job_id__launch_cloud_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/models/catalog": {
         parameters: {
             query?: never;
@@ -442,6 +459,15 @@ export interface components {
              * Format: binary
              */
             file: string;
+        };
+        /** CloudLaunchResponse */
+        CloudLaunchResponse: {
+            /** Pod Id */
+            pod_id: string;
+            /** Image Name */
+            image_name: string;
+            /** Machine Id */
+            machine_id: string | null;
         };
         /** CostEstimateRequest */
         CostEstimateRequest: {
@@ -1583,6 +1609,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FineTuneJobConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    launch_cloud_job_api_v1_jobs__job_id__launch_cloud_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CloudLaunchResponse"];
                 };
             };
             /** @description Validation Error */

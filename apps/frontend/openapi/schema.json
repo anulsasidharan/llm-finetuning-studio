@@ -1024,6 +1024,54 @@
         }
       }
     },
+    "/api/v1/jobs/{job_id}/launch-cloud": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Launch Cloud Job",
+        "operationId": "launch_cloud_job_api_v1_jobs__job_id__launch_cloud_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudLaunchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/models/catalog": {
       "get": {
         "tags": [
@@ -1142,6 +1190,36 @@
           "file"
         ],
         "title": "Body_upload_dataset_api_v1_datasets_upload_post"
+      },
+      "CloudLaunchResponse": {
+        "properties": {
+          "pod_id": {
+            "type": "string",
+            "title": "Pod Id"
+          },
+          "image_name": {
+            "type": "string",
+            "title": "Image Name"
+          },
+          "machine_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Machine Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pod_id",
+          "image_name",
+          "machine_id"
+        ],
+        "title": "CloudLaunchResponse"
       },
       "CostEstimateRequest": {
         "properties": {

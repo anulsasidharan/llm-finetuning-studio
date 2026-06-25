@@ -84,6 +84,9 @@ class Settings(BaseSettings):
     # ─── GPU Pricing ────────────────────────────────────────────────
     GPU_PRICING_CACHE_TTL_SECONDS: int = 3600
 
+    # ─── Cloud Launcher ─────────────────────────────────────────────
+    TRAINING_ENGINE_DOCKER_IMAGE: str = ""
+
     # ─── Notifications (optional) ───────────────────────────────────
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587

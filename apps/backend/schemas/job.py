@@ -42,3 +42,9 @@ class FineTuneJobResponse(BaseModel):
 
 class FineTuneJobConfigResponse(BaseModel):
     training_config: dict[str, Any]
+
+
+class CloudLaunchResponse(BaseModel):
+    pod_id: str
+    image_name: str
+    machine_id: str | None

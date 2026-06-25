@@ -425,3 +425,112 @@ def test_get_job_config_unauthenticated_returns_401(client) -> None:
     response = client.get(f"/api/v1/jobs/{uuid4()}/config")
 
     assert response.status_code == 401
+
+
+@pytest.fixture
+def mock_launch_job(monkeypatch):
+    from services.cloud_launchers.base import LaunchedPod
+
+    async def _fake_launch_job(job):
+        return LaunchedPod(
+            pod_id="pod-abc123", image_name="orionvexa/fts-training-engine", machine_id="machine-1"
+        )
+
+    monkeypatch.setattr(job_service.cloud_launch_service, "launch_job", _fake_launch_job)
+
+
+def test_launch_cloud_job_success(
+    client, emails_to_cleanup, mock_dispatch, mock_launch_job
+) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    headers = _auth_headers(user)
+
+    created = client.post(
+        "/api/v1/jobs",
+        headers=headers,
+        json={
+            "base_model_id": "meta-llama/Meta-Llama-3-8B",
+            "methodology": "sft",
+            "training_config": {"learning_rate": 0.0001, "num_epochs": 1, "batch_size": 2},
+            "gpu_type": "A10080GBPCIe",
+            "cloud_vendor": "RunPod",
+        },
+    ).json()
+
+    response = client.post(f"/api/v1/jobs/{created['id']}/launch-cloud", headers=headers)
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["pod_id"] == "pod-abc123"
+    assert data["image_name"] == "orionvexa/fts-training-engine"
+    assert data["machine_id"] == "machine-1"
+
+
+def test_launch_cloud_job_unsupported_vendor_returns_422(
+    client, emails_to_cleanup, mock_dispatch
+) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    headers = _auth_headers(user)
+
+    created = client.post(
+        "/api/v1/jobs",
+        headers=headers,
+        json={
+            "base_model_id": "meta-llama/Meta-Llama-3-8B",
+            "methodology": "sft",
+            "training_config": {"learning_rate": 0.0001, "num_epochs": 1, "batch_size": 2},
+        },
+    ).json()
+
+    response = client.post(f"/api/v1/jobs/{created['id']}/launch-cloud", headers=headers)
+
+    assert response.status_code == 422
+
+
+def test_launch_cloud_job_not_found_returns_404(client, emails_to_cleanup) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+
+    response = client.post(f"/api/v1/jobs/{uuid4()}/launch-cloud", headers=_auth_headers(user))
+
+    assert response.status_code == 404
+
+
+def test_launch_cloud_job_scoped_to_owner_returns_404_for_other_users_job(
+    client, emails_to_cleanup, mock_dispatch
+) -> None:
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    owner = _register(client, email)
+    created = client.post(
+        "/api/v1/jobs",
+        headers=_auth_headers(owner),
+        json={
+            "base_model_id": "meta-llama/Meta-Llama-3-8B",
+            "methodology": "sft",
+            "training_config": {"learning_rate": 0.0001, "num_epochs": 1, "batch_size": 2},
+            "gpu_type": "A10080GBPCIe",
+            "cloud_vendor": "RunPod",
+        },
+    ).json()
+
+    other_email = _unique_email()
+    emails_to_cleanup.append(other_email)
+    other_user = _register(client, other_email)
+
+    response = client.post(
+        f"/api/v1/jobs/{created['id']}/launch-cloud", headers=_auth_headers(other_user)
+    )
+
+    assert response.status_code == 404
+
+
+def test_launch_cloud_job_unauthenticated_returns_401(client) -> None:
+    response = client.post(f"/api/v1/jobs/{uuid4()}/launch-cloud")
+
+    assert response.status_code == 401

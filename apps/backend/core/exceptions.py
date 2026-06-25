@@ -30,3 +30,8 @@ class ConflictError(AppException):
 class ValidationError(AppException):
     status_code: int = 422
     detail: str = "Validation failed."
+
+
+class ExternalServiceError(AppException):
+    status_code: int = 502
+    detail: str = "An upstream service request failed."

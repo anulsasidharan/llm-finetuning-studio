@@ -72,7 +72,7 @@
 | PHASE3-002 | GPU pricing Redis cache with TTL | ✅ DONE | PHASE3-001 | feat/PHASE3-002-gpu-pricing-cache |
 | PHASE3-003 | Cost forecaster service — pre-flight cost calculation | ✅ DONE | PHASE3-001 | feat/PHASE3-003-cost-forecaster |
 | PHASE3-004 | Cloud launcher — submit jobs to RunPod via API | ✅ DONE | PHASE3-001 | feat/PHASE3-004-cloud-launcher |
-| PHASE3-005 | training_engine/evaluation/benchmark.py — MMLU/HellaSwag/ARC | ⬜ TODO | PHASE2 complete | feat/PHASE3-005-eval-benchmark |
+| PHASE3-005 | training_engine/evaluation/benchmark.py — MMLU/HellaSwag/ARC | ✅ DONE | PHASE2 complete | feat/PHASE3-005-eval-benchmark |
 | PHASE3-006 | training_engine/evaluation/compare.py — base vs fine-tuned | ⬜ TODO | PHASE2 complete | feat/PHASE3-006-eval-compare |
 | PHASE3-007 | Frontend: Evaluation Playground — side-by-side comparison | ⬜ TODO | PHASE3-006 | feat/PHASE3-007-eval-playground |
 | PHASE3-008 | training_engine/export/merge_lora.py | ⬜ TODO | PHASE2 complete | feat/PHASE3-008-merge-lora |

@@ -174,6 +174,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/eval/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Compare Job */
+        post: operations["create_compare_job_api_v1_eval_compare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/eval/benchmark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Benchmark Job */
+        post: operations["create_benchmark_job_api_v1_eval_benchmark_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/eval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Eval Jobs */
+        get: operations["list_eval_jobs_api_v1_eval_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/eval/{eval_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Eval Job */
+        get: operations["get_eval_job_api_v1_eval__eval_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/experiments": {
         parameters: {
             query?: never;
@@ -567,6 +635,88 @@ export interface components {
             row_count: number;
             /** Quality Report */
             quality_report: Record<string, unknown> | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** EvalBenchmarkCreate */
+        EvalBenchmarkCreate: {
+            /** Base Model Id */
+            base_model_id: string;
+            /** Benchmarks */
+            benchmarks: ("mmlu" | "hellaswag" | "arc")[];
+            /** Num Fewshot */
+            num_fewshot?: number | null;
+            /** Sample Limit */
+            sample_limit?: number | null;
+        };
+        /** EvalCompareCreate */
+        EvalCompareCreate: {
+            /** Base Model Id */
+            base_model_id: string;
+            /** Finetuned Model Id */
+            finetuned_model_id: string;
+            /** Prompts */
+            prompts: string[];
+            /** Benchmarks */
+            benchmarks?: ("mmlu" | "hellaswag" | "arc")[] | null;
+            /**
+             * Max New Tokens
+             * @default 256
+             */
+            max_new_tokens: number;
+            /** Num Fewshot */
+            num_fewshot?: number | null;
+            /** Sample Limit */
+            sample_limit?: number | null;
+        };
+        /** EvalJobResponse */
+        EvalJobResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /**
+             * Eval Type
+             * @enum {string}
+             */
+            eval_type: "compare" | "benchmark";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "queued" | "running" | "completed" | "failed";
+            /** Base Model Id */
+            base_model_id: string;
+            /** Finetuned Model Id */
+            finetuned_model_id: string | null;
+            /** Prompts */
+            prompts: string[] | null;
+            /** Benchmarks */
+            benchmarks: string[] | null;
+            /** Num Fewshot */
+            num_fewshot: number | null;
+            /** Sample Limit */
+            sample_limit: number | null;
+            /** Max New Tokens */
+            max_new_tokens: number | null;
+            /** Result */
+            result: Record<string, unknown> | null;
+            /** Error Message */
+            error_message: string | null;
             /**
              * Created At
              * Format: date-time
@@ -1195,6 +1345,123 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DatasetResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_compare_job_api_v1_eval_compare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvalCompareCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_benchmark_job_api_v1_eval_benchmark_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvalBenchmarkCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalJobResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_eval_jobs_api_v1_eval_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalJobResponse"][];
+                };
+            };
+        };
+    };
+    get_eval_job_api_v1_eval__eval_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eval_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvalJobResponse"];
                 };
             };
             /** @description Validation Error */

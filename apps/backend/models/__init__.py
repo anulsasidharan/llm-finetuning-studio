@@ -1,4 +1,5 @@
 from models.dataset import Dataset
+from models.eval_job import EvalJob
 from models.experiment import Experiment, ExperimentRun
 from models.fine_tune_job import FineTuneJob
 from models.gpu_pricing import GpuPricing
@@ -8,6 +9,7 @@ from models.user import User
 
 __all__ = [
     "Dataset",
+    "EvalJob",
     "Experiment",
     "ExperimentRun",
     "FineTuneJob",

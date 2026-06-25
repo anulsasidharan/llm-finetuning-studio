@@ -394,6 +394,176 @@
         }
       }
     },
+    "/api/v1/eval/compare": {
+      "post": {
+        "tags": [
+          "eval"
+        ],
+        "summary": "Create Compare Job",
+        "operationId": "create_compare_job_api_v1_eval_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvalCompareCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvalJobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/eval/benchmark": {
+      "post": {
+        "tags": [
+          "eval"
+        ],
+        "summary": "Create Benchmark Job",
+        "operationId": "create_benchmark_job_api_v1_eval_benchmark_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvalBenchmarkCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvalJobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/eval": {
+      "get": {
+        "tags": [
+          "eval"
+        ],
+        "summary": "List Eval Jobs",
+        "operationId": "list_eval_jobs_api_v1_eval_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EvalJobResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Eval Jobs Api V1 Eval Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/eval/{eval_id}": {
+      "get": {
+        "tags": [
+          "eval"
+        ],
+        "summary": "Get Eval Job",
+        "operationId": "get_eval_job_api_v1_eval__eval_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "eval_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Eval Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvalJobResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/experiments": {
       "get": {
         "tags": [
@@ -1576,6 +1746,288 @@
           "updated_at"
         ],
         "title": "DatasetResponse"
+      },
+      "EvalBenchmarkCreate": {
+        "properties": {
+          "base_model_id": {
+            "type": "string",
+            "title": "Base Model Id"
+          },
+          "benchmarks": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "mmlu",
+                "hellaswag",
+                "arc"
+              ]
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Benchmarks"
+          },
+          "num_fewshot": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Fewshot"
+          },
+          "sample_limit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_model_id",
+          "benchmarks"
+        ],
+        "title": "EvalBenchmarkCreate"
+      },
+      "EvalCompareCreate": {
+        "properties": {
+          "base_model_id": {
+            "type": "string",
+            "title": "Base Model Id"
+          },
+          "finetuned_model_id": {
+            "type": "string",
+            "title": "Finetuned Model Id"
+          },
+          "prompts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Prompts"
+          },
+          "benchmarks": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "mmlu",
+                    "hellaswag",
+                    "arc"
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmarks"
+          },
+          "max_new_tokens": {
+            "type": "integer",
+            "title": "Max New Tokens",
+            "default": 256
+          },
+          "num_fewshot": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Fewshot"
+          },
+          "sample_limit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "base_model_id",
+          "finetuned_model_id",
+          "prompts"
+        ],
+        "title": "EvalCompareCreate"
+      },
+      "EvalJobResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "eval_type": {
+            "type": "string",
+            "enum": [
+              "compare",
+              "benchmark"
+            ],
+            "title": "Eval Type"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "queued",
+              "running",
+              "completed",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "base_model_id": {
+            "type": "string",
+            "title": "Base Model Id"
+          },
+          "finetuned_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finetuned Model Id"
+          },
+          "prompts": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompts"
+          },
+          "benchmarks": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Benchmarks"
+          },
+          "num_fewshot": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Fewshot"
+          },
+          "sample_limit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Limit"
+          },
+          "max_new_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max New Tokens"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "eval_type",
+          "status",
+          "base_model_id",
+          "finetuned_model_id",
+          "prompts",
+          "benchmarks",
+          "num_fewshot",
+          "sample_limit",
+          "max_new_tokens",
+          "result",
+          "error_message",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EvalJobResponse"
       },
       "ExperimentCompareResponse": {
         "properties": {

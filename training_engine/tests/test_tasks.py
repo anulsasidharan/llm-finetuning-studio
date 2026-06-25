@@ -133,3 +133,84 @@ def test_run_training_job_catches_unexpected_training_exception() -> None:
     assert result["status"] == "failed"
     assert "CUDA OOM" in result["error"]
     mock_failed.assert_called_once()
+
+
+def _run_eval(**overrides):
+    kwargs = {
+        "eval_id": "eval-1",
+        "eval_type": "compare",
+        "base_model_id": "gpt2",
+        "finetuned_model_id": "gpt2-ft",
+        "prompts": ["hello"],
+        **overrides,
+    }
+    return tasks.run_eval_job.run(**kwargs)
+
+
+def test_run_eval_job_compare_happy_path() -> None:
+    fake_result = {"status": "completed", "completions": [{"prompt": "hello"}]}
+    with (
+        patch("tasks.mark_eval_running") as mock_running,
+        patch("tasks.compare_models", return_value=fake_result) as mock_compare,
+        patch("tasks.mark_eval_completed") as mock_completed,
+    ):
+        result = _run_eval()
+
+    mock_running.assert_called_once_with("eval-1")
+    mock_compare.assert_called_once_with(
+        prompts=["hello"],
+        base_model_id="gpt2",
+        finetuned_model_id="gpt2-ft",
+        benchmarks=None,
+        max_new_tokens=256,
+        num_fewshot=None,
+        limit=None,
+    )
+    mock_completed.assert_called_once_with("eval-1", fake_result)
+    assert result == fake_result
+
+
+def test_run_eval_job_benchmark_happy_path() -> None:
+    fake_result = {"status": "completed", "metrics": {"mmlu": {}}}
+    with (
+        patch("tasks.mark_eval_running"),
+        patch("tasks.run_benchmark", return_value=fake_result) as mock_benchmark,
+        patch("tasks.mark_eval_completed") as mock_completed,
+    ):
+        result = _run_eval(
+            eval_type="benchmark",
+            finetuned_model_id=None,
+            prompts=None,
+            benchmarks=["mmlu"],
+        )
+
+    mock_benchmark.assert_called_once_with(
+        benchmarks=["mmlu"], model_id="gpt2", num_fewshot=None, limit=None
+    )
+    mock_completed.assert_called_once_with("eval-1", fake_result)
+    assert result == fake_result
+
+
+def test_run_eval_job_rejects_unsupported_eval_type() -> None:
+    with (
+        patch("tasks.mark_eval_running"),
+        patch("tasks.mark_eval_failed") as mock_failed,
+    ):
+        result = _run_eval(eval_type="unknown")
+
+    assert result["status"] == "failed"
+    assert "unknown" in result["error"]
+    mock_failed.assert_called_once()
+
+
+def test_run_eval_job_catches_exception_from_compare() -> None:
+    with (
+        patch("tasks.mark_eval_running"),
+        patch("tasks.compare_models", side_effect=RuntimeError("model not found")),
+        patch("tasks.mark_eval_failed") as mock_failed,
+    ):
+        result = _run_eval()
+
+    assert result["status"] == "failed"
+    assert "model not found" in result["error"]
+    mock_failed.assert_called_once_with("eval-1", "model not found")

@@ -243,6 +243,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/gpu/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Forecast Cost */
+        post: operations["forecast_cost_api_v1_gpu_forecast_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/gpu/instances": {
         parameters: {
             query?: never;
@@ -457,6 +474,45 @@ export interface components {
             estimated_hours: number;
             /** Estimated Cost Usd */
             estimated_cost_usd: number;
+        };
+        /** CostForecastOption */
+        CostForecastOption: {
+            /** Vendor */
+            vendor: string;
+            /** Gpu Type */
+            gpu_type: string;
+            /** Vram Gb */
+            vram_gb: number;
+            /** Price Per Hour Usd */
+            price_per_hour_usd: number;
+            /** Estimated Hours */
+            estimated_hours: number;
+            /** Estimated Cost Usd */
+            estimated_cost_usd: number;
+        };
+        /** CostForecastRequest */
+        CostForecastRequest: {
+            /** Vendor */
+            vendor?: string | null;
+            /** Min Vram Gb */
+            min_vram_gb?: number | null;
+            /** Hours */
+            hours?: number | null;
+            /** Methodology */
+            methodology?: ("sft" | "lora" | "qlora" | "dpo" | "orpo" | "rlhf") | null;
+            /** Num Epochs */
+            num_epochs?: number | null;
+            /** Dataset Row Count */
+            dataset_row_count?: number | null;
+            /** Batch Size */
+            batch_size?: number | null;
+            /** Gradient Accumulation Steps */
+            gradient_accumulation_steps?: number | null;
+        };
+        /** CostForecastResponse */
+        CostForecastResponse: {
+            /** Options */
+            options: components["schemas"]["CostForecastOption"][];
         };
         /** DatasetResponse */
         DatasetResponse: {
@@ -1263,6 +1319,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExperimentCompareResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    forecast_cost_api_v1_gpu_forecast_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CostForecastRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CostForecastResponse"];
                 };
             };
             /** @description Validation Error */

@@ -238,3 +238,107 @@ def test_estimate_cost_requires_auth(client):
         json={"vendor": "AWS", "gpu_type": "A100-80GB", "hours": 5},
     )
     assert response.status_code == 401
+
+
+def test_forecast_cost_returns_all_matching_options_sorted_cheapest_first(
+    client, emails_to_cleanup, seeded_gpu_pricing
+):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    vendor = seeded_gpu_pricing[0]["vendor"]
+
+    response = client.post(
+        "/api/v1/gpu/forecast",
+        json={"vendor": vendor, "hours": 10},
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 200, response.text
+    options = response.json()["options"]
+    assert len(options) == len(seeded_gpu_pricing)
+    assert [o["estimated_cost_usd"] for o in options] == sorted(
+        o["estimated_cost_usd"] for o in options
+    )
+    cheapest = min(seeded_gpu_pricing, key=lambda row: row["price_per_hour_usd"])
+    assert options[0]["gpu_type"] == cheapest["gpu_type"]
+    assert options[0]["estimated_cost_usd"] == cheapest["price_per_hour_usd"] * 10
+
+
+def test_forecast_cost_filters_by_min_vram_gb(client, emails_to_cleanup, seeded_gpu_pricing):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    vendor = seeded_gpu_pricing[0]["vendor"]
+
+    response = client.post(
+        "/api/v1/gpu/forecast",
+        json={"vendor": vendor, "min_vram_gb": 80, "hours": 5},
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 200, response.text
+    options = response.json()["options"]
+    assert len(options) == 1
+    assert all(o["vram_gb"] >= 80 for o in options)
+
+
+def test_forecast_cost_with_training_params(client, emails_to_cleanup, seeded_gpu_pricing):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    vendor = seeded_gpu_pricing[0]["vendor"]
+
+    response = client.post(
+        "/api/v1/gpu/forecast",
+        json={
+            "vendor": vendor,
+            "methodology": "lora",
+            "num_epochs": 3,
+            "dataset_row_count": 1000,
+            "batch_size": 4,
+            "gradient_accumulation_steps": 1,
+        },
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 200, response.text
+    options = response.json()["options"]
+    # total_steps = ceil(1000 * 3 / 4) = 750, seconds_per_step (lora) = 1.8s -> 0.375 hours
+    assert all(o["estimated_hours"] == 0.375 for o in options)
+    for option in options:
+        assert option["estimated_cost_usd"] == round(0.375 * option["price_per_hour_usd"], 2)
+
+
+def test_forecast_cost_missing_params_returns_422(client, emails_to_cleanup, seeded_gpu_pricing):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+    vendor = seeded_gpu_pricing[0]["vendor"]
+
+    response = client.post(
+        "/api/v1/gpu/forecast",
+        json={"vendor": vendor, "num_epochs": 3},
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 422, response.text
+
+
+def test_forecast_cost_no_matching_instances_returns_404(client, emails_to_cleanup):
+    email = _unique_email()
+    emails_to_cleanup.append(email)
+    user = _register(client, email)
+
+    response = client.post(
+        "/api/v1/gpu/forecast",
+        json={"vendor": "NoSuchVendor", "hours": 5},
+        headers=_auth_headers(user),
+    )
+
+    assert response.status_code == 404, response.text
+
+
+def test_forecast_cost_requires_auth(client):
+    response = client.post("/api/v1/gpu/forecast", json={"hours": 5})
+    assert response.status_code == 401

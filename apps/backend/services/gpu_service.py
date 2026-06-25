@@ -2,7 +2,7 @@ import math
 
 from core.exceptions import NotFoundError
 from models.gpu_pricing import GpuPricing
-from schemas.gpu import CostEstimateRequest, CostEstimateResponse
+from schemas.gpu import CostEstimateRequest, CostEstimateResponse, CostForecastRequest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,30 +39,44 @@ async def get_pricing(vendor: str, gpu_type: str, db: AsyncSession) -> GpuPricin
     return instance
 
 
-def _estimate_hours_from_training_params(payload: CostEstimateRequest) -> float:
-    assert payload.num_epochs is not None
-    assert payload.dataset_row_count is not None
-    assert payload.batch_size is not None
-    assert payload.gradient_accumulation_steps is not None
-
-    effective_batch_size = payload.batch_size * payload.gradient_accumulation_steps
-    total_steps = math.ceil((payload.dataset_row_count * payload.num_epochs) / effective_batch_size)
+def estimate_training_hours(
+    *,
+    num_epochs: int,
+    dataset_row_count: int,
+    batch_size: int,
+    gradient_accumulation_steps: int,
+    methodology: str | None,
+) -> float:
+    effective_batch_size = batch_size * gradient_accumulation_steps
+    total_steps = math.ceil((dataset_row_count * num_epochs) / effective_batch_size)
     seconds_per_step = (
-        SECONDS_PER_STEP_BY_METHODOLOGY.get(payload.methodology, DEFAULT_SECONDS_PER_STEP)
-        if payload.methodology
+        SECONDS_PER_STEP_BY_METHODOLOGY.get(methodology, DEFAULT_SECONDS_PER_STEP)
+        if methodology
         else DEFAULT_SECONDS_PER_STEP
     )
     return (total_steps * seconds_per_step) / 3600
 
 
+def resolve_estimated_hours(payload: CostEstimateRequest | CostForecastRequest) -> float:
+    if payload.hours is not None:
+        return payload.hours
+    assert payload.num_epochs is not None
+    assert payload.dataset_row_count is not None
+    assert payload.batch_size is not None
+    assert payload.gradient_accumulation_steps is not None
+    return estimate_training_hours(
+        num_epochs=payload.num_epochs,
+        dataset_row_count=payload.dataset_row_count,
+        batch_size=payload.batch_size,
+        gradient_accumulation_steps=payload.gradient_accumulation_steps,
+        methodology=payload.methodology,
+    )
+
+
 async def estimate_cost(payload: CostEstimateRequest, db: AsyncSession) -> CostEstimateResponse:
     instance = await get_pricing(payload.vendor, payload.gpu_type, db)
     price_per_hour_usd = float(instance.price_per_hour_usd)
-    estimated_hours = (
-        payload.hours
-        if payload.hours is not None
-        else _estimate_hours_from_training_params(payload)
-    )
+    estimated_hours = resolve_estimated_hours(payload)
     estimated_cost_usd = estimated_hours * price_per_hour_usd
     return CostEstimateResponse(
         vendor=instance.vendor,

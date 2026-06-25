@@ -622,6 +622,52 @@
         }
       }
     },
+    "/api/v1/gpu/forecast": {
+      "post": {
+        "tags": [
+          "gpu"
+        ],
+        "summary": "Forecast Cost",
+        "operationId": "forecast_cost_api_v1_gpu_forecast_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CostForecastRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostForecastResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/gpu/instances": {
       "get": {
         "tags": [
@@ -1221,6 +1267,162 @@
           "estimated_cost_usd"
         ],
         "title": "CostEstimateResponse"
+      },
+      "CostForecastOption": {
+        "properties": {
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "gpu_type": {
+            "type": "string",
+            "title": "Gpu Type"
+          },
+          "vram_gb": {
+            "type": "integer",
+            "title": "Vram Gb"
+          },
+          "price_per_hour_usd": {
+            "type": "number",
+            "title": "Price Per Hour Usd"
+          },
+          "estimated_hours": {
+            "type": "number",
+            "title": "Estimated Hours"
+          },
+          "estimated_cost_usd": {
+            "type": "number",
+            "title": "Estimated Cost Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "vendor",
+          "gpu_type",
+          "vram_gb",
+          "price_per_hour_usd",
+          "estimated_hours",
+          "estimated_cost_usd"
+        ],
+        "title": "CostForecastOption"
+      },
+      "CostForecastRequest": {
+        "properties": {
+          "vendor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vendor"
+          },
+          "min_vram_gb": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Vram Gb"
+          },
+          "hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hours"
+          },
+          "methodology": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "sft",
+                  "lora",
+                  "qlora",
+                  "dpo",
+                  "orpo",
+                  "rlhf"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Methodology"
+          },
+          "num_epochs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Epochs"
+          },
+          "dataset_row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataset Row Count"
+          },
+          "batch_size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Size"
+          },
+          "gradient_accumulation_steps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gradient Accumulation Steps"
+          }
+        },
+        "type": "object",
+        "title": "CostForecastRequest"
+      },
+      "CostForecastResponse": {
+        "properties": {
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/CostForecastOption"
+            },
+            "type": "array",
+            "title": "Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "options"
+        ],
+        "title": "CostForecastResponse"
       },
       "DatasetResponse": {
         "properties": {

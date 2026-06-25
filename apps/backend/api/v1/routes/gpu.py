@@ -6,13 +6,24 @@ from models.user import User
 from schemas.gpu import (
     CostEstimateRequest,
     CostEstimateResponse,
+    CostForecastRequest,
+    CostForecastResponse,
     GpuPricingResponse,
     GpuPricingSyncResponse,
 )
-from services import gpu_pricing_sync_service, gpu_service
+from services import cost_forecast_service, gpu_pricing_sync_service, gpu_service
 from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
+
+
+@router.post("/forecast", response_model=CostForecastResponse)
+async def forecast_cost(
+    payload: CostForecastRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> CostForecastResponse:
+    return await cost_forecast_service.forecast_cost(payload, db)
 
 
 @router.get("/instances", response_model=list[GpuPricingResponse])

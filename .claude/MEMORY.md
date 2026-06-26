@@ -12,8 +12,8 @@
 ## CURRENT PHASE
 - Phase: 3 — Cloud, Evaluation & Deploy (Weeks 9–12)
 - Active Week: 9
-- Last completed task: PHASE3-008 — `training_engine/export/merge_lora.py`: merges PEFT LoRA/QLoRA adapter into base model via `peft.PeftModel.merge_and_unload()`, saves standalone merged model+tokenizer to `<output_dir>/merged`; 6 new tests, 141/141 passing (2026-06-25).
-- Next task: PHASE3-009 (training_engine/export/push_hf.py) from BACKLOG.md
+- Last completed task: PHASE3-009 — `training_engine/export/push_hf.py`: `push_to_hub(model_dir, repo_id, *, hf_token, private, commit_message, trust_remote_code)` uploads any local model directory to HuggingFace Hub via `HfApi.create_repo(exist_ok=True)` + `HfApi.upload_folder()`; returns `{status, model_dir, repo_id, repo_url, commit_url}`; 7 new tests, 148/148 passing (2026-06-25).
+- Next task: PHASE3-010 (training_engine/export/export_gguf.py) from BACKLOG.md
 
 ## GIT WORKFLOW
 - main branch:     production-ready only — never commit directly

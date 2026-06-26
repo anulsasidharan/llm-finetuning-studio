@@ -3,7 +3,7 @@ alembic==1.13.1
 amqp==5.3.1
 annotated-doc==0.0.4
 annotated-types==0.7.0
-anyio==4.14.0
+anyio==4.14.1
 argon2-cffi==25.1.0
 argon2-cffi-bindings==25.1.0
 async-timeout==5.0.1

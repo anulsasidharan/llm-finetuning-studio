@@ -2,48 +2,42 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE4-006
-## TASK NAME: Production Docker Compose — docker-compose.prod.yml
+## TASK ID: PHASE4-007
+## TASK NAME: GitHub Actions CI/CD pipeline
 ## STATUS: ✅ DONE
 ## ASSIGNED PHASE: Phase 4, Week 13
-## BRANCH: feat/PHASE4-006-prod-docker-compose
+## BRANCH: feat/PHASE4-007-cicd-pipeline
+## PR: https://github.com/anulsasidharan/llm-finetuning-studio/pull/64
 
 ## NEXT TASK
-PHASE4-007 (GitHub Actions CI/CD pipeline).
+PHASE4-008 (OrionVexa YouTube demo walkthrough video) — final task, no code required.
 
 ## SUMMARY (this session, 2026-06-26)
-Built a complete production Docker Compose stack and supporting files.
+Built a complete GitHub Actions CI/CD pipeline with four workflow/config files.
 
-**Files created:**
-- `docker-compose.prod.yml` — production compose; `production` build targets, no source
-  volume mounts, no host port bindings for postgres/redis/minio, nginx on 80/443,
-  `restart: always`, JSON logging with rotation, memory limits via `deploy.resources`,
-  GPU training engine behind `--profile gpu`.
-- `infra/docker/nginx/nginx.prod.conf` — nginx reverse proxy: `/api/` + `/health` +
-  `/docs` → backend:8000; `/ws/` → backend:8000 with WebSocket upgrade; `/_next/static/`
-  with 1-year immutable cache; everything else → frontend:3000. HTTPS server block
-  commented out with cert mount instructions.
-- `infra/docker/nginx/certs/.gitkeep` — placeholder dir for TLS certs with instructions.
-- `apps/backend/start.prod.sh` — waits for DB, runs `alembic upgrade head`, starts
-  uvicorn with 4 workers + `--proxy-headers`.
-- `.env.prod.example` — production env template with all CHANGE_ME markers; storage
-  Option A (MinIO) and Option B (AWS S3) both documented.
-
-**Files modified:**
-- `.gitignore` — added `.env.prod` so the real secrets file is never committed.
-- `Makefile` — added `COMPOSE_PROD` variable and 8 prod targets: `prod-build`, `prod`,
-  `prod-gpu`, `prod-stop`, `prod-migrate`, `prod-logs`, `prod-ps`, `prod-clean`.
-  Each target guards against missing `.env.prod` where applicable.
-
-**Validation:**
-- `docker compose -f docker-compose.prod.yml config` exits 0 (only obsolete `version`
-  warning, which was then removed from the file).
+**Files created/updated:**
+- `.github/workflows/ci.yml` — updated with `uv` caching (`astral-sh/setup-uv@v4`
+  `enable-cache: true`), new `frontend-build` job (`npm run build` after lint),
+  `docker-build` jobs now use `docker/build-push-action@v5` with GHA layer cache.
+- `.github/workflows/cd.yml` — new; triggers on push to `main`; builds backend and
+  frontend production Docker images and pushes to
+  `ghcr.io/<owner>/llm-finetuning-studio-{backend,frontend}` using
+  `docker/build-push-action` + `docker/metadata-action` for SHA + `latest` tags;
+  deploy job gated on `DEPLOY_ENABLED` repo variable + `production` environment.
+- `.github/workflows/security.yml` — new; Trivy scans backend image, frontend image,
+  and repo filesystem for CRITICAL/HIGH CVEs; SARIF uploaded to GitHub Security tab;
+  runs on push to `main`/`develop` + weekly Monday 07:00 UTC cron.
+- `.github/dependabot.yml` — new; weekly auto-updates for GitHub Actions, npm
+  (Radix UI + TanStack grouped), backend pip, training-engine pip.
 
 ## GOTCHAS LOGGED
-- `NEXT_PUBLIC_*` vars are baked into the Next.js bundle at build time — run
-  `make prod-build` after updating the domain in `.env.prod`, not just `make prod`.
-- GPU training engine is behind `profiles: [gpu]`; use `make prod-gpu` or
-  `docker compose -f docker-compose.prod.yml --profile gpu up -d` to activate it.
-- nginx `client_max_body_size 512m` matches `MAX_UPLOAD_SIZE_MB=500` in the env.
-- `deploy.resources.limits` requires Docker Compose plugin v2+ (not Docker Compose v1 / standalone).
-- `.env.prod` is gitignored; `.env.prod.example` is committed as the template.
+- CD `deploy` job requires `DEPLOY_ENABLED=true` repo variable + secrets
+  `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PATH` to activate.
+- Frontend NEXT_PUBLIC_* vars for CD build come from repo variables
+  (`vars.NEXT_PUBLIC_API_URL`, `vars.NEXT_PUBLIC_WS_URL`) — set in GitHub
+  Settings → Variables → Actions before running CD on a real domain.
+- Training engine is intentionally excluded from CD: GPU image (nvidia/cuda base)
+  is ~8 GB and should be built on a GPU-equipped server, not GHA runners.
+- `setup-uv@v4` (not v3 from old ci.yml) is needed for `enable-cache` to work.
+- Trivy `exit-code: "0"` means scan failures are reported but don't fail the job;
+  change to `"1"` to enforce hard gate on new CVEs.

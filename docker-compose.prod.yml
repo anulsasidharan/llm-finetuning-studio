@@ -1,0 +1,357 @@
+# Production Docker Compose — LLM Fine-Tuning Studio
+#
+# Prerequisites:
+#   1. cp .env.prod.example .env.prod && fill in all CHANGE_ME values
+#   2. docker compose -f docker-compose.prod.yml build
+#   3. docker compose -f docker-compose.prod.yml up -d
+#
+# GPU training worker:
+#   docker compose -f docker-compose.prod.yml --profile gpu up -d
+#
+# Access: http://<host>  (nginx on port 80)
+# For TLS: mount certs to /etc/nginx/certs and update nginx.prod.conf
+
+name: llm-finetuning-studio-prod
+
+networks:
+  fts_network:
+    driver: bridge
+    name: fts_network_prod
+
+volumes:
+  fts_postgres_data_prod:
+    name: fts_postgres_data_prod
+  fts_redis_data_prod:
+    name: fts_redis_data_prod
+  fts_minio_data_prod:
+    name: fts_minio_data_prod
+  fts_hf_cache_prod:
+    name: fts_hf_cache_prod
+  fts_training_output_prod:
+    name: fts_training_output_prod
+
+services:
+
+  # ─── PostgreSQL ───────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: fts_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    # No host port binding — accessible only within fts_network
+    volumes:
+      - fts_postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - fts_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── Redis ────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: fts_redis_prod
+    restart: always
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    # No host port binding
+    volumes:
+      - fts_redis_data_prod:/data
+    networks:
+      - fts_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── MinIO (S3-compatible object storage) ────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: fts_minio_prod
+    restart: always
+    # No console-address — web UI disabled in production
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    # No host port binding — only the backend accesses MinIO
+    volumes:
+      - fts_minio_data_prod:/data
+    networks:
+      - fts_network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── MinIO bucket initializer (one-shot) ──────────────────────
+  minio_init:
+    image: minio/mc:latest
+    container_name: fts_minio_init_prod
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - fts_network
+    env_file: .env.prod
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set fts http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      mc mb --ignore-existing fts/${BUCKET_DATASETS};
+      mc mb --ignore-existing fts/${BUCKET_MODELS};
+      mc mb --ignore-existing fts/${BUCKET_CHECKPOINTS};
+      mc mb --ignore-existing fts/${BUCKET_EXPORTS};
+      echo 'MinIO buckets initialized.';
+      exit 0;
+      "
+
+  # ─── Backend API (FastAPI — 4 workers) ───────────────────────
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+      target: production
+    image: fts-backend:prod
+    container_name: fts_backend_prod
+    restart: always
+    env_file: .env.prod
+    environment:
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - fts_hf_cache_prod:/app/.cache/huggingface
+    networks:
+      - fts_network
+    # Runs migrations then starts uvicorn with 4 workers
+    command: sh /app/start.prod.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ─── Celery Worker ────────────────────────────────────────────
+  celery_worker:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+      target: production
+    image: fts-backend:prod
+    container_name: fts_celery_worker_prod
+    restart: always
+    env_file: .env.prod
+    environment:
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - fts_training_output_prod:/training_engine/output
+      - fts_hf_cache_prod:/app/.cache/huggingface
+    networks:
+      - fts_network
+    command: >
+      celery -A core.celery_app worker
+      --loglevel=info
+      --queues=training,export,default
+      --concurrency=4
+      --without-heartbeat
+      --without-gossip
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ─── Celery Beat (scheduled tasks) ───────────────────────────
+  celery_beat:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+      target: production
+    image: fts-backend:prod
+    container_name: fts_celery_beat_prod
+    restart: always
+    env_file: .env.prod
+    environment:
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+    depends_on:
+      - redis
+    networks:
+      - fts_network
+    command: celery -A core.celery_app beat --loglevel=info
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── Frontend (Next.js standalone) ───────────────────────────
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+      target: production
+    image: fts-frontend:prod
+    container_name: fts_frontend_prod
+    restart: always
+    env_file: .env.prod
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - fts_network
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ─── Nginx (reverse proxy — single public entry point) ───────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: fts_nginx_prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/docker/nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/docker/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - fts_network
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── GPU Training Engine (opt-in: --profile gpu) ─────────────
+  training_engine:
+    profiles: [gpu]
+    build:
+      context: ./training_engine
+      dockerfile: Dockerfile
+      target: gpu
+    image: fts-training-engine:prod
+    container_name: fts_training_engine_prod
+    restart: always
+    env_file: .env.prod
+    environment:
+      CUDA_VISIBLE_DEVICES: "0"
+      ENVIRONMENT: production
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    volumes:
+      - fts_training_output_prod:/training_engine/output
+      - fts_hf_cache_prod:/training_engine/.cache/huggingface
+    networks:
+      - fts_network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+        limits:
+          memory: 32g
+    command: >
+      celery -A worker.celery_app worker
+      --loglevel=info
+      --queues=gpu_training
+      --concurrency=1
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"

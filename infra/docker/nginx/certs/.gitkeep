@@ -1,0 +1,5 @@
+# Mount TLS certificates here for HTTPS:
+#   fullchain.pem — certificate + chain
+#   privkey.pem   — private key
+#
+# Then uncomment the HTTPS server block in nginx.prod.conf.

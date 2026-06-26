@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI
 
 on:
   push:
@@ -7,8 +7,11 @@ on:
     branches: [develop, main]
 
 jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Backend
+  # ─────────────────────────────────────────────────────────────────────────────
   backend-lint:
-    name: Backend Lint & Type Check
+    name: Backend — Lint & Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,22 +22,25 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/backend/requirements*.txt
 
       - name: Install dependencies
         working-directory: apps/backend
         run: uv pip install --system -r requirements.txt -r requirements-dev.txt
 
-      - name: Run ruff lint
+      - name: ruff lint
         working-directory: apps/backend
-        run: uv run ruff check .
+        run: ruff check .
 
-      - name: Run ruff format check
+      - name: ruff format check
         working-directory: apps/backend
-        run: uv run ruff format --check .
+        run: ruff format --check .
 
   backend-test:
-    name: Backend Tests
+    name: Backend — Tests
     runs-on: ubuntu-latest
     needs: backend-lint
 
@@ -71,8 +77,8 @@ jobs:
       REDIS_PASSWORD: ""
       CELERY_BROKER_URL: redis://localhost:6380/0
       CELERY_RESULT_BACKEND: redis://localhost:6380/0
-      SECRET_KEY: test-secret-key-minimum-32-characters-long
-      MINIO_ROOT_PASSWORD: test-minio-password
+      SECRET_KEY: ci-secret-key-minimum-32-characters-long
+      MINIO_ROOT_PASSWORD: ci-minio-password
       ENVIRONMENT: test
 
     steps:
@@ -84,7 +90,10 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/backend/requirements*.txt
 
       - name: Install dependencies
         working-directory: apps/backend
@@ -96,31 +105,19 @@ jobs:
 
       - name: Run tests
         working-directory: apps/backend
-        run: |
-          if [ -d tests ]; then
-            echo "Found tests/ directory — running pytest"
-            pytest -v --cov=. --cov-report=xml
-          else
-            echo "No backend tests found in apps/backend/tests — skipping pytest."
-          fi
-
-      - name: Check coverage file
-        id: check-coverage
-        run: |
-          if [ -f apps/backend/coverage.xml ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
+        run: pytest -v --cov=. --cov-report=xml
 
       - name: Upload coverage
-        if: steps.check-coverage.outputs.exists == 'true'
         uses: codecov/codecov-action@v4
         with:
           file: apps/backend/coverage.xml
+        continue-on-error: true
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Frontend
+  # ─────────────────────────────────────────────────────────────────────────────
   frontend-lint:
-    name: Frontend Lint & Type Check
+    name: Frontend — Lint & Type Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -136,16 +133,44 @@ jobs:
         working-directory: apps/frontend
         run: npm ci
 
-      - name: Run ESLint
+      - name: ESLint
         working-directory: apps/frontend
         run: npm run lint
 
-      - name: Run TypeScript check
+      - name: TypeScript check
         working-directory: apps/frontend
         run: npx tsc --noEmit
 
+  frontend-build:
+    name: Frontend — Build
+    runs-on: ubuntu-latest
+    needs: frontend-lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: apps/frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+          NEXT_PUBLIC_WS_URL: ws://localhost:8000
+        run: npm run build
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Training Engine
+  # ─────────────────────────────────────────────────────────────────────────────
   training-engine-lint:
-    name: Training Engine Lint
+    name: Training Engine — Lint & Format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -156,36 +181,65 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: training_engine/requirements.txt
 
-      - name: Install torch (CPU wheels)
+      - name: Install PyTorch (CPU wheels for CI)
         working-directory: training_engine
-        run: uv pip install --system torch==2.3.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+        run: |
+          uv pip install --system torch==2.3.0 torchvision torchaudio \
+            --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install dependencies
         working-directory: training_engine
         run: uv pip install --system -r requirements.txt
 
-      - name: Run ruff lint
+      - name: ruff lint
         working-directory: training_engine
-        run: uv run ruff check .
+        run: ruff check .
 
-      - name: Run ruff format check
+      - name: ruff format check
         working-directory: training_engine
-        run: uv run ruff format --check .
+        run: ruff format --check .
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Docker build smoke-test (no push)
+  # ─────────────────────────────────────────────────────────────────────────────
   docker-build:
-    name: Docker Build Check
+    name: Docker — Build Check
     runs-on: ubuntu-latest
     needs: [backend-lint, frontend-lint]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build backend image
-        run: docker build --target development -t fts-backend:ci apps/backend/
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build frontend image
-        run: docker build --target development -t fts-frontend:ci apps/frontend/
+      - name: Build backend (development)
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/backend
+          target: development
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Build training engine image
-        run: docker build --target development -t fts-training:ci training_engine/
+      - name: Build frontend (development)
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/frontend
+          target: development
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build training engine (development)
+        uses: docker/build-push-action@v5
+        with:
+          context: training_engine
+          target: development
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

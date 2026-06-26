@@ -12,8 +12,8 @@
 ## CURRENT PHASE
 - Phase: 3 — Cloud, Evaluation & Deploy (Weeks 9–12)
 - Active Week: 9
-- Last completed task: PHASE3-009 — `training_engine/export/push_hf.py`: `push_to_hub(model_dir, repo_id, *, hf_token, private, commit_message, trust_remote_code)` uploads any local model directory to HuggingFace Hub via `HfApi.create_repo(exist_ok=True)` + `HfApi.upload_folder()`; returns `{status, model_dir, repo_id, repo_url, commit_url}`; 7 new tests, 148/148 passing (2026-06-25).
-- Next task: PHASE3-010 (training_engine/export/export_gguf.py) from BACKLOG.md
+- Last completed task: PHASE3-010 — `training_engine/export/export_gguf.py`: `export_gguf(model_dir, output_dir, *, quantization_type="q4_k_m", llama_cpp_path=None, model_name=None)` converts any HF model dir to GGUF by calling llama.cpp's `convert_hf_to_gguf.py` via subprocess; script path resolved from `llama_cpp_path` kwarg (file or repo-root dir) > `LLAMA_CPP_CONVERT_SCRIPT` env var; 10 supported quant types (f32/f16/q8_0/q6_k/q5_k_m/q5_0/q4_k_m/q4_0/q3_k_m/q2_k); output filename `<model_name>-<quant_type>.gguf`; `ExportGGUFError(ValueError)`; `_run_convert_subprocess` wrapper makes subprocess mockable without lazy-import overhead; 11 new tests, 159/159 passing (2026-06-25).
+- Next task: PHASE3-011 (Frontend: Deploy & Export Manager page) from BACKLOG.md
 
 ## GIT WORKFLOW
 - main branch:     production-ready only — never commit directly

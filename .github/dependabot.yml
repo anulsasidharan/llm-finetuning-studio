@@ -1,0 +1,39 @@
+version: 2
+
+updates:
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, ci]
+
+  # Frontend (npm)
+  - package-ecosystem: npm
+    directory: /apps/frontend
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, frontend]
+    groups:
+      radix-ui:
+        patterns: ["@radix-ui/*"]
+      tanstack:
+        patterns: ["@tanstack/*"]
+
+  # Backend (pip)
+  - package-ecosystem: pip
+    directory: /apps/backend
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, backend]
+
+  # Training engine (pip)
+  - package-ecosystem: pip
+    directory: /training_engine
+    schedule:
+      interval: weekly
+      day: monday
+    labels: [dependencies, training-engine]

@@ -2,54 +2,52 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE3-010
-## TASK NAME: training_engine/export/export_gguf.py
+## TASK ID: PHASE3-011
+## TASK NAME: Frontend: Deploy & Export Manager page
 ## STATUS: ✅ DONE
 ## ASSIGNED PHASE: Phase 3, Week 9
-## BRANCH: feat/PHASE3-010-export-gguf
+## BRANCH: feat/PHASE3-011-deploy-export-manager
 
 ## NEXT TASK
-PHASE3-011 (Frontend: Deploy & Export Manager page) — depends on PHASE3-009 (done).
+PHASE4-001 (Frontend: Onboarding Wizard) — first task of Phase 4.
 
 ## SUMMARY (this session, 2026-06-25)
-Implemented `training_engine/export/export_gguf.py` — standalone module that
-converts any local HuggingFace model directory to GGUF format by invoking
-llama.cpp's `convert_hf_to_gguf.py` script via subprocess.
+Built the full Deploy & Export Manager feature — backend registry CRUD + export
+dispatch plumbing + frontend page — completing Phase 3.
 
-**Design decisions:**
-- `export_gguf(model_dir, output_dir, *, quantization_type="q4_k_m", llama_cpp_path=None, model_name=None)`
-  is the single public entry point — same flat-function style as `merge_lora.py` and `push_hf.py`
-- Uses subprocess rather than importing llama.cpp Python libs — llama.cpp
-  is a C++ project; its Python conversion script is the standard industry
-  interface for HF→GGUF conversion, not a pip package
-- Script path resolution: `llama_cpp_path` kwarg (file or repo-root dir)
-  > `LLAMA_CPP_CONVERT_SCRIPT` env var > raises ExportGGUFError with
-  a helpful message
-- `_run_convert_subprocess(cmd)` is a thin wrapper around `subprocess.run`
-  so tests can mock it without touching the stdlib directly
-- Output filename: `<model_name>-<quantization_type>.gguf`; `model_name`
-  defaults to `model_dir.name` so no manual naming is required
-- `SUPPORTED_QUANT_TYPES` frozenset (f32/f16/q8_0/q6_k/q5_k_m/q5_0/
-  q4_k_m/q4_0/q3_k_m/q2_k) — validated before subprocess is launched
-- `ExportGGUFError(ValueError)` — consistent with `MergeLoRAError`, `PushHFError`
-- No lazy import helper needed — `subprocess` is stdlib, always available
+**Backend files created:**
+- `apps/backend/schemas/registry.py` — ModelRegistryResponse, ModelRegistryCreate,
+  PushHFRequest, ExportGGUFRequest (with QuantizationType Literal of 10 quant types)
+- `apps/backend/services/registry_service.py` — list/get/create/push_hf/export_gguf/delete,
+  all async SQLAlchemy, raises NotFoundError on missing entries
+- `apps/backend/tasks/export_tasks.py` — dispatch_push_hf + dispatch_export_gguf
+  Celery tasks; follow eval_tasks.py pattern: lightweight backend tasks that call
+  celery.send_task("training_engine.tasks.run_export_job", queue="gpu_training")
+- `apps/backend/api/v1/routes/registry.py` — GET/POST /registry, GET/POST/DELETE
+  /registry/{id}, POST /registry/{id}/push-hf, POST /registry/{id}/export-gguf
+- Updated `apps/backend/api/v1/__init__.py` to register registry router
+
+**Frontend files created:**
+- Regenerated `apps/frontend/openapi/schema.json` + `types/api-schema.d.ts`
+- Updated `apps/frontend/types/index.ts` — 4 new registry type exports
+- `apps/frontend/hooks/useRegistry.ts` — 6 hooks: useRegistryEntries, useRegistryEntry,
+  useCreateRegistryEntry, usePushToHF, useExportToGGUF, useDeleteRegistryEntry
+- `apps/frontend/app/(dashboard)/deploy/page.tsx` — table of registered models; 4
+  dialog components (Register, PushHF, ExportGGUF, Delete); export status badges
+  showing hf_repo_id / gguf_export_path state
 
 **Verification:**
-- 11 unit tests in `tests/test_export_gguf.py`:
-  - 5 error paths: missing model_dir, unsupported quant type, no script
-    configured, invalid llama_cpp_path, env var pointing to missing file
-  - 1 subprocess-failure path: non-zero returncode raises ExportGGUFError
-  - 5 happy paths: full success (verifies cmd args), custom model_name,
-    llama_cpp_path as directory, script from env var, all 10 quant types
-- Full suite (excluding pre-existing langdetect + torch trainer failures):
-  148 → 159 passing (11 new)
-- `ruff check` and `ruff format --check` both clean
-- Pre-commit hook passed (ruff lint + format stages)
+- `npm run build` — passes (TypeScript clean, /deploy in route list)
+- `ruff check` + `ruff format --check` — all backend files pass
+- All pre-commit hooks passed on commit
 
 ## GOTCHAS LOGGED
-- The pre-existing langdetect import failure in test_quality_check.py
-  (ModuleNotFoundError: No module named 'langdetect') continues to block
-  that file from collection — unchanged, not introduced by this task.
-- Pre-existing trainer test failures (9 tests across test_base_trainer,
-  test_dpo_trainer, test_lora_trainer, test_qlora_trainer, test_sft_trainer)
-  also unchanged.
+- `training_engine.tasks.run_export_job` task does NOT exist yet in training_engine/tasks.py
+  — the dispatch_push_hf / dispatch_export_gguf Celery tasks call it via celery.send_task
+  (fire-and-forget to the gpu_training queue). A future task would need to implement
+  run_export_job in training_engine using the existing export/push_hf.py and
+  export/export_gguf.py modules.
+- Registry entry status is inferred from field values (hf_repo_id / gguf_export_path
+  populated = done, null = not exported) — no separate status column in model_registry.
+  Export operations are fire-and-forget from the API layer; the frontend reflects the
+  last-known persisted state.

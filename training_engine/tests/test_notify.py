@@ -1,0 +1,30 @@
+from unittest.mock import MagicMock, patch
+
+from utils.notify import enqueue_job_status_email
+
+
+def test_enqueue_job_status_email_sends_default_queue_task() -> None:
+    mock_client = MagicMock()
+    with (
+        patch("celery.Celery", return_value=mock_client) as mock_celery_ctor,
+        patch.dict("os.environ", {"CELERY_BROKER_URL": "redis://broker:6379/1"}, clear=False),
+    ):
+        enqueue_job_status_email(job_id="job-1", status="completed")
+
+    mock_celery_ctor.assert_called_once_with(broker="redis://broker:6379/1")
+    mock_client.send_task.assert_called_once_with(
+        "tasks.notification_tasks.send_job_status_email",
+        kwargs={"job_id": "job-1", "status": "completed", "error": None},
+        queue="default",
+    )
+
+
+def test_enqueue_job_status_email_skips_non_terminal_status() -> None:
+    with patch("celery.Celery") as mock_celery_ctor:
+        enqueue_job_status_email(job_id="job-1", status="running")
+    mock_celery_ctor.assert_not_called()
+
+
+def test_enqueue_job_status_email_swallows_broker_errors() -> None:
+    with patch("celery.Celery", side_effect=ConnectionError("down")):
+        enqueue_job_status_email(job_id="job-1", status="failed", error="boom")

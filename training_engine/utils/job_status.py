@@ -23,6 +23,7 @@ import structlog
 from transformers import TrainerCallback, TrainerControl, TrainerState, TrainingArguments
 
 from utils.callbacks import publish_status_change
+from utils.notify import enqueue_job_status_email
 
 logger = structlog.get_logger()
 
@@ -80,6 +81,7 @@ def mark_job_completed(
             "job_status_update_failed", job_id=job_id, status="completed", error=str(exc)
         )
     publish_status_change(job_id=job_id, status="completed")
+    enqueue_job_status_email(job_id=job_id, status="completed")
 
 
 def mark_job_failed(job_id: str, error: str) -> None:
@@ -92,6 +94,7 @@ def mark_job_failed(job_id: str, error: str) -> None:
     except Exception as exc:
         logger.warning("job_status_update_failed", job_id=job_id, status="failed", error=str(exc))
     publish_status_change(job_id=job_id, status="failed")
+    enqueue_job_status_email(job_id=job_id, status="failed", error=error)
 
 
 def update_job_metrics(

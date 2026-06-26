@@ -20,7 +20,7 @@ jobs:
     name: Trivy — Backend Image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -54,7 +54,7 @@ jobs:
     name: Trivy — Frontend Image
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -94,7 +94,7 @@ jobs:
     name: Trivy — Filesystem Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Scan filesystem
         uses: aquasecurity/trivy-action@master

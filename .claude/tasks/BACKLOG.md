@@ -87,7 +87,7 @@
 | PHASE4-001 | Frontend: Onboarding Wizard — beginner/advanced routing | ✅ DONE | PHASE3 complete | feat/PHASE4-001-onboarding-wizard |
 | PHASE4-002 | Frontend: Learning Center — conceptual explainers | ✅ DONE | PHASE4-001 | feat/PHASE4-002-learning-center |
 | PHASE4-003 | Email notifications — job complete/failed | ✅ DONE | PHASE3 complete | feat/PHASE4-003-email-notifications |
-| PHASE4-004 | Slack notifications — webhook integration | ⬜ TODO | PHASE4-003 | feat/PHASE4-004-slack-notifications |
+| PHASE4-004 | Slack notifications — webhook integration | ✅ DONE | PHASE4-003 | feat/PHASE4-004-slack-notifications |
 | PHASE4-005 | RLHF support — PPOTrainer + RewardTrainer (stretch goal) | ⬜ TODO | PHASE3 complete | feat/PHASE4-005-rlhf-support |
 | PHASE4-006 | Production Docker Compose — docker-compose.prod.yml | ⬜ TODO | PHASE4 complete | feat/PHASE4-006-prod-docker-compose |
 | PHASE4-007 | GitHub Actions CI/CD pipeline | ⬜ TODO | PHASE4-006 | feat/PHASE4-007-cicd-pipeline |

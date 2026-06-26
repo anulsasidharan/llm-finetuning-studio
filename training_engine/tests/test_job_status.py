@@ -113,7 +113,7 @@ def test_mark_job_completed_publishes_status_change() -> None:
     with (
         patcher,
         patch("utils.job_status.publish_status_change") as mock_publish,
-        patch("utils.job_status.enqueue_job_status_email") as mock_notify,
+        patch("utils.job_status.enqueue_job_status_notifications") as mock_notify,
     ):
         mark_job_completed("job-1", train_loss=0.5, eval_loss=0.4)
 
@@ -126,7 +126,7 @@ def test_mark_job_failed_publishes_status_change() -> None:
     with (
         patcher,
         patch("utils.job_status.publish_status_change") as mock_publish,
-        patch("utils.job_status.enqueue_job_status_email") as mock_notify,
+        patch("utils.job_status.enqueue_job_status_notifications") as mock_notify,
     ):
         mark_job_failed("job-1", "boom")
 

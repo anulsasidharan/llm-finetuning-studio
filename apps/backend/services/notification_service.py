@@ -9,6 +9,7 @@ import structlog
 from core.config import settings
 
 from services.email_service import send_email
+from services.slack_service import post_slack_message
 
 logger = structlog.get_logger()
 
@@ -172,6 +173,60 @@ def _build_body_html(ctx: JobNotificationContext) -> str:
 </html>"""
 
 
+def _build_slack_text(ctx: JobNotificationContext) -> str:
+    headline = (
+        "Training job completed successfully"
+        if ctx.status == "completed"
+        else "Training job failed"
+    )
+    return (
+        f"{headline}: {ctx.base_model_id} ({ctx.methodology.upper()}) — "
+        f"job {ctx.job_id} for {ctx.user_name}"
+    )
+
+
+def _build_slack_blocks(ctx: JobNotificationContext) -> list[dict[str, object]]:
+    dashboard_url = _training_dashboard_url(ctx.job_id)
+    headline = (
+        f":white_check_mark: {settings.APP_NAME} — training job completed"
+        if ctx.status == "completed"
+        else f":x: {settings.APP_NAME} — training job failed"
+    )
+    fields: list[dict[str, object]] = [
+        {"type": "mrkdwn", "text": f"*Job ID*\n`{ctx.job_id}`"},
+        {"type": "mrkdwn", "text": f"*User*\n{ctx.user_name} ({ctx.user_email})"},
+        {"type": "mrkdwn", "text": f"*Base model*\n{ctx.base_model_id}"},
+        {"type": "mrkdwn", "text": f"*Methodology*\n{ctx.methodology.upper()}"},
+    ]
+    if ctx.status == "completed":
+        fields.extend(
+            [
+                {"type": "mrkdwn", "text": f"*Train loss*\n{_format_loss(ctx.train_loss)}"},
+                {"type": "mrkdwn", "text": f"*Eval loss*\n{_format_loss(ctx.eval_loss)}"},
+            ]
+        )
+    elif ctx.error:
+        fields.append({"type": "mrkdwn", "text": f"*Error*\n{ctx.error}"})
+
+    return [
+        {
+            "type": "header",
+            "text": {"type": "plain_text", "text": headline, "emoji": True},
+        },
+        {"type": "section", "fields": fields},
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "View training dashboard"},
+                    "url": dashboard_url,
+                }
+            ],
+        },
+    ]
+
+
 def deliver_job_status_email(*, job_id: str, status: str, error: str | None = None) -> None:
     if status not in TERMINAL_STATUSES:
         logger.info("job_notification_skipped_non_terminal", job_id=job_id, status=status)
@@ -186,4 +241,19 @@ def deliver_job_status_email(*, job_id: str, status: str, error: str | None = No
         subject=_build_subject(ctx),
         body_text=_build_body_text(ctx),
         body_html=_build_body_html(ctx),
+    )
+
+
+def deliver_job_status_slack(*, job_id: str, status: str, error: str | None = None) -> None:
+    if status not in TERMINAL_STATUSES:
+        logger.info("job_notification_skipped_non_terminal", job_id=job_id, status=status)
+        return
+
+    ctx = _fetch_job_context(job_id, status, error)
+    if ctx is None:
+        return
+
+    post_slack_message(
+        text=_build_slack_text(ctx),
+        blocks=_build_slack_blocks(ctx),
     )

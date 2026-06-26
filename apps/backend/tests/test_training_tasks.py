@@ -56,7 +56,7 @@ def test_dispatch_rejects_rlhf_methodology() -> None:
     with (
         patch("tasks.training_tasks._connect", return_value=fake_conn),
         patch("tasks.training_tasks.celery.send_task") as mock_send,
-        patch("tasks.training_tasks._enqueue_job_status_email") as mock_notify,
+        patch("tasks.training_tasks._enqueue_job_status_notifications") as mock_notify,
     ):
         _run(methodology="rlhf")
 
@@ -74,7 +74,7 @@ def test_dispatch_marks_failed_when_no_dataset_attached() -> None:
     with (
         patch("tasks.training_tasks._connect", return_value=fake_conn),
         patch("tasks.training_tasks.celery.send_task") as mock_send,
-        patch("tasks.training_tasks._enqueue_job_status_email") as mock_notify,
+        patch("tasks.training_tasks._enqueue_job_status_notifications") as mock_notify,
     ):
         _run(dataset_storage_path=None)
 

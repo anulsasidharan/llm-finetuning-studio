@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   Activity,
   Beaker,
+  BookOpen,
   Box,
   Calculator,
   Cpu,
@@ -30,6 +31,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Onboarding", href: "/onboarding", icon: Rocket },
+  { label: "Learning Center", href: "/learning", icon: BookOpen },
   { label: "Datasets", href: "/datasets", icon: Database },
   { label: "Methodology", href: "/methodology", icon: GitBranch },
   { label: "Training Config", href: "/config", icon: SlidersHorizontal },

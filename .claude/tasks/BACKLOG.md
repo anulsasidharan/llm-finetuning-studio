@@ -77,7 +77,7 @@
 | PHASE3-007 | Frontend: Evaluation Playground — side-by-side comparison | ✅ DONE | PHASE3-006 | feat/PHASE3-007-eval-playground |
 | PHASE3-008 | training_engine/export/merge_lora.py | ✅ DONE | PHASE2 complete | feat/PHASE3-008-merge-lora |
 | PHASE3-009 | training_engine/export/push_hf.py | ✅ DONE | PHASE3-008 | feat/PHASE3-009-push-hf |
-| PHASE3-010 | training_engine/export/export_gguf.py | ⬜ TODO | PHASE3-008 | feat/PHASE3-010-export-gguf |
+| PHASE3-010 | training_engine/export/export_gguf.py | ✅ DONE | PHASE3-008 | feat/PHASE3-010-export-gguf |
 | PHASE3-011 | Frontend: Deploy & Export Manager page | ⬜ TODO | PHASE3-009 | feat/PHASE3-011-deploy-export-manager |
 
 ## PHASE 4 — Learning Center + Polish (Weeks 13–16)

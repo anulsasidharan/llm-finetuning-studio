@@ -18,6 +18,10 @@ export type GpuPricingSyncVendorResult = components["schemas"]["GpuPricingSyncVe
 export type EvalJobResponse = components["schemas"]["EvalJobResponse"];
 export type EvalCompareCreate = components["schemas"]["EvalCompareCreate"];
 export type EvalBenchmarkCreate = components["schemas"]["EvalBenchmarkCreate"];
+export type ModelRegistryResponse = components["schemas"]["ModelRegistryResponse"];
+export type ModelRegistryCreate = components["schemas"]["ModelRegistryCreate"];
+export type PushHFRequest = components["schemas"]["PushHFRequest"];
+export type ExportGGUFRequest = components["schemas"]["ExportGGUFRequest"];
 
 export type DatasetFormat = DatasetResponse["format"];
 export type FineTuneJobStatus = FineTuneJobResponse["status"];

@@ -499,6 +499,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/registry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Registry */
+        get: operations["list_registry_api_v1_registry_get"];
+        put?: never;
+        /** Create Registry Entry */
+        post: operations["create_registry_entry_api_v1_registry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Registry Entry */
+        get: operations["get_registry_entry_api_v1_registry__entry_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Registry Entry */
+        delete: operations["delete_registry_entry_api_v1_registry__entry_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/{entry_id}/push-hf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Push To Hf */
+        post: operations["push_to_hf_api_v1_registry__entry_id__push_hf_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/{entry_id}/export-gguf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export To Gguf */
+        post: operations["export_to_gguf_api_v1_registry__entry_id__export_gguf_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -843,6 +913,15 @@ export interface components {
              */
             created_at: string;
         };
+        /** ExportGGUFRequest */
+        ExportGGUFRequest: {
+            /**
+             * Quantization Type
+             * @default q4_k_m
+             * @enum {string}
+             */
+            quantization_type: "f32" | "f16" | "q8_0" | "q6_k" | "q5_k_m" | "q5_0" | "q4_k_m" | "q4_0" | "q3_k_m" | "q2_k";
+        };
         /** FineTuneJobConfigResponse */
         FineTuneJobConfigResponse: {
             /** Training Config */
@@ -995,6 +1074,66 @@ export interface components {
             parameter_count_b: number;
             /** Supports Instruct */
             supports_instruct: boolean;
+        };
+        /** ModelRegistryCreate */
+        ModelRegistryCreate: {
+            /** Name */
+            name: string;
+            /** Base Model Id */
+            base_model_id: string;
+            /** Storage Path */
+            storage_path?: string | null;
+            /** Fine Tune Job Id */
+            fine_tune_job_id?: string | null;
+        };
+        /** ModelRegistryResponse */
+        ModelRegistryResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+            /** Fine Tune Job Id */
+            fine_tune_job_id: string | null;
+            /** Name */
+            name: string;
+            /** Base Model Id */
+            base_model_id: string;
+            /** Storage Path */
+            storage_path: string | null;
+            /** Hf Repo Id */
+            hf_repo_id: string | null;
+            /** Gguf Export Path */
+            gguf_export_path: string | null;
+            /** Vllm Endpoint */
+            vllm_endpoint: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PushHFRequest */
+        PushHFRequest: {
+            /** Hf Repo Id */
+            hf_repo_id: string;
+            /** Hf Token */
+            hf_token: string;
+            /**
+             * Private
+             * @default true
+             */
+            private: boolean;
         };
         /** RefreshRequest */
         RefreshRequest: {
@@ -1958,6 +2097,189 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelCatalogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_registry_api_v1_registry_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelRegistryResponse"][];
+                };
+            };
+        };
+    };
+    create_registry_entry_api_v1_registry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelRegistryCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelRegistryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_registry_entry_api_v1_registry__entry_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelRegistryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_registry_entry_api_v1_registry__entry_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    push_to_hf_api_v1_registry__entry_id__push_hf_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PushHFRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelRegistryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_to_gguf_api_v1_registry__entry_id__export_gguf_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportGGUFRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelRegistryResponse"];
                 };
             };
             /** @description Validation Error */

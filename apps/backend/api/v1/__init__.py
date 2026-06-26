@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from api.v1.routes import auth, datasets, eval, experiments, gpu, jobs, models
+from api.v1.routes import auth, datasets, eval, experiments, gpu, jobs, models, registry
 
 api_router = APIRouter()
 
@@ -11,3 +11,4 @@ api_router.include_router(experiments.router, prefix="/experiments", tags=["expe
 api_router.include_router(gpu.router, prefix="/gpu", tags=["gpu"])
 api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 api_router.include_router(models.router, prefix="/models", tags=["models"])
+api_router.include_router(registry.router, prefix="/registry", tags=["registry"])

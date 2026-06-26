@@ -1319,6 +1319,283 @@
         }
       }
     },
+    "/api/v1/registry": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "List Registry",
+        "operationId": "list_registry_api_v1_registry_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModelRegistryResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Registry Api V1 Registry Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "Create Registry Entry",
+        "operationId": "create_registry_entry_api_v1_registry_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelRegistryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelRegistryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/registry/{entry_id}": {
+      "get": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "Get Registry Entry",
+        "operationId": "get_registry_entry_api_v1_registry__entry_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelRegistryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "Delete Registry Entry",
+        "operationId": "delete_registry_entry_api_v1_registry__entry_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registry/{entry_id}/push-hf": {
+      "post": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "Push To Hf",
+        "operationId": "push_to_hf_api_v1_registry__entry_id__push_hf_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushHFRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelRegistryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/registry/{entry_id}/export-gguf": {
+      "post": {
+        "tags": [
+          "registry"
+        ],
+        "summary": "Export To Gguf",
+        "operationId": "export_to_gguf_api_v1_registry__entry_id__export_gguf_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportGGUFRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelRegistryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -2267,6 +2544,29 @@
         ],
         "title": "ExperimentRunResponse"
       },
+      "ExportGGUFRequest": {
+        "properties": {
+          "quantization_type": {
+            "type": "string",
+            "enum": [
+              "f32",
+              "f16",
+              "q8_0",
+              "q6_k",
+              "q5_k_m",
+              "q5_0",
+              "q4_k_m",
+              "q4_0",
+              "q3_k_m",
+              "q2_k"
+            ],
+            "title": "Quantization Type",
+            "default": "q4_k_m"
+          }
+        },
+        "type": "object",
+        "title": "ExportGGUFRequest"
+      },
       "FineTuneJobConfigResponse": {
         "properties": {
           "training_config": {
@@ -2684,6 +2984,173 @@
           "supports_instruct"
         ],
         "title": "ModelCatalogResponse"
+      },
+      "ModelRegistryCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "base_model_id": {
+            "type": "string",
+            "title": "Base Model Id"
+          },
+          "storage_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Path"
+          },
+          "fine_tune_job_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fine Tune Job Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "base_model_id"
+        ],
+        "title": "ModelRegistryCreate"
+      },
+      "ModelRegistryResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "fine_tune_job_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fine Tune Job Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "base_model_id": {
+            "type": "string",
+            "title": "Base Model Id"
+          },
+          "storage_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Storage Path"
+          },
+          "hf_repo_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hf Repo Id"
+          },
+          "gguf_export_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gguf Export Path"
+          },
+          "vllm_endpoint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vllm Endpoint"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "fine_tune_job_id",
+          "name",
+          "base_model_id",
+          "storage_path",
+          "hf_repo_id",
+          "gguf_export_path",
+          "vllm_endpoint",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ModelRegistryResponse"
+      },
+      "PushHFRequest": {
+        "properties": {
+          "hf_repo_id": {
+            "type": "string",
+            "title": "Hf Repo Id"
+          },
+          "hf_token": {
+            "type": "string",
+            "title": "Hf Token"
+          },
+          "private": {
+            "type": "boolean",
+            "title": "Private",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "hf_repo_id",
+          "hf_token"
+        ],
+        "title": "PushHFRequest"
       },
       "RefreshRequest": {
         "properties": {

@@ -2,6 +2,7 @@ from trainers.base_trainer import BaseTrainer, TrainerConfig, TrainerError
 from trainers.dpo_trainer import DPOTrainer
 from trainers.lora_trainer import LoRATrainer
 from trainers.qlora_trainer import QLoRATrainer
+from trainers.rlhf_trainer import RLHFTrainer
 from trainers.sft_trainer import SFTTrainer
 
 __all__ = [
@@ -9,6 +10,7 @@ __all__ = [
     "DPOTrainer",
     "LoRATrainer",
     "QLoRATrainer",
+    "RLHFTrainer",
     "SFTTrainer",
     "TrainerConfig",
     "TrainerError",

@@ -2,55 +2,57 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE4-004
-## TASK NAME: Slack notifications — webhook integration
+## TASK ID: PHASE4-005
+## TASK NAME: RLHF support — PPOTrainer + RewardTrainer (stretch goal)
 ## STATUS: ✅ DONE
 ## ASSIGNED PHASE: Phase 4, Week 13
-## BRANCH: feat/PHASE4-004-slack-notifications
+## BRANCH: feat/PHASE4-005-rlhf-support
 
 ## NEXT TASK
-PHASE4-005 (RLHF support — PPOTrainer + RewardTrainer, stretch goal).
+PHASE4-006 (Production Docker Compose — docker-compose.prod.yml).
 
 ## SUMMARY (this session, 2026-06-26)
-Implemented optional Slack incoming-webhook notifications when a fine-tune job reaches a
-terminal status (`completed` or `failed`), fanning out alongside email from the same hooks.
+Implemented end-to-end RLHF training in the GPU worker: preference-pair dataset
+(``prompt``/``chosen``/``rejected``, same shape as DPO/ORPO) → RewardTrainer
+fine-tune from ``training_config.reward_model_id`` → PPOTrainer policy optimisation
+on ``base_model_id`` scored by the trained reward model.
 
-**Backend files created:**
-- `apps/backend/services/slack_service.py` — sync `httpx.Client` POST to
-  `SLACK_WEBHOOK_URL`; no-ops with info log when webhook unset.
-
-**Backend files modified:**
-- `apps/backend/services/notification_service.py` — `_build_slack_text()` /
-  `_build_slack_blocks()` (Block Kit header, fields, dashboard button) +
-  `deliver_job_status_slack()` reusing `JobNotificationContext`.
-- `apps/backend/tasks/notification_tasks.py` — Celery task
-  `send_job_status_slack` on the `default` queue.
-- `apps/backend/tasks/training_tasks.py` — `_enqueue_job_status_notifications()`
-  fans out email + Slack Celery tasks (replaces `_enqueue_job_status_email`).
+**Training engine files created:**
+- `training_engine/trainers/rlhf_trainer.py` — `RLHFTrainer`: phase 1
+  `trl.RewardTrainer` (`AutoModelForSequenceClassification`, tokenized pairs) saves
+  to `{output_dir}/reward_model`; phase 2 `trl.PPOTrainer`
+  (`AutoModelForCausalLMWithValueHead` + ref model) manual generate→score→step loop,
+  saves policy to `{output_dir}/final`.
 
 **Training engine files modified:**
-- `training_engine/utils/notify.py` — `enqueue_job_status_slack()` +
-  `enqueue_job_status_notifications()` (email + Slack fan-out via `send_task` by name).
-- `training_engine/utils/job_status.py` — calls unified
-  `enqueue_job_status_notifications` from `mark_job_completed`/`mark_job_failed`.
+- `training_engine/tasks.py` — `TRAINER_CLASSES["rlhf"] = RLHFTrainer`; removed
+  unsupported-methodology comment.
+- `training_engine/trainers/__init__.py` — export `RLHFTrainer`.
 
-**Config:**
-- `SLACK_WEBHOOK_URL` already in Settings + `.env.example` (no change needed).
+**Backend files modified:**
+- `apps/backend/tasks/training_tasks.py` — removed `UNSUPPORTED_METHODOLOGIES`
+  block for `rlhf`; dispatch now queues RLHF jobs like other methodologies.
 
-**Trigger points (unchanged from PHASE4-003, now fan out to both channels):**
-1. Training completes or fails in GPU worker → `job_status.mark_job_*` → notify enqueue.
-2. Backend dispatch rejects job (rlhf / no dataset) → `training_tasks._mark_job_failed`
-   → notify enqueue.
+**Trigger points:**
+1. Job created with `methodology=rlhf` + `reward_model_id` in `training_config` →
+   `dispatch_training_job` marks `queued` → `run_training_job` → `RLHFTrainer.train()`.
+2. Dispatch-time failure only when no dataset attached (unchanged).
 
 **Verification:**
-- `uv run pytest` — backend notification tests 38/38, training_engine notify+job_status 22/22.
+- `uv run pytest` — `test_rlhf_trainer.py` 5/5, `test_tasks.py` 10/10,
+  `test_training_tasks.py` 8/8.
 - `uv run ruff check` — clean on all touched files.
-- No live Slack webhook tested (URL unset in dev — expected no-op path).
+- No live GPU RLHF run tested (stretch goal; unit tests mock TRL/transformers).
 
 ## GOTCHAS LOGGED
-- Slack fires only on `completed`/`failed`, same as email — not `queued`/`running`/`pending`.
-- Webhook is optional; dev works without `SLACK_WEBHOOK_URL` (logs `slack_skipped_webhook_not_configured`).
-- Fan-out is two separate Celery tasks (email + Slack), not one combined task — keeps channels
-  independently retryable and optional.
-- `training_engine/utils/notify.py` still cannot import apps/backend — uses `send_task` by name.
-- Slack Block Kit button links to `FRONTEND_URL/training/{job_id}` (same deep link as email).
+- RLHF dataset must be preference pairs (`prompt`/`chosen`/`rejected`), not ChatML
+  messages — same as DPO/ORPO; `BaseTrainer.prepare_dataset_rows`/`to_chatml` not used.
+- `reward_model_id` is the RewardTrainer starting checkpoint (sequence-classification
+  head, `num_labels=1`); after phase 1 the fine-tuned RM at `{output_dir}/reward_model`
+  scores PPO generations.
+- PPO uses TRL 0.8.6's manual loop (`generate` → reward score → `step`), not
+  `Trainer.train()` — callbacks attach to RewardTrainer only.
+- `PPOConfig.steps` derived from `num_epochs` × dataset prompt count (not a separate
+  config key); `mini_batch_size`/`batch_size` adjusted for TRL divisibility constraint.
+- Backend no longer rejects `rlhf` at dispatch — failures surface from trainer validation
+  (missing `reward_model_id`, bad pair rows) inside the GPU worker.

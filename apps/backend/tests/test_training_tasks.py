@@ -51,22 +51,25 @@ def _run(**overrides: Any) -> None:
     return dispatch_training_job.run(**kwargs)
 
 
-def test_dispatch_rejects_rlhf_methodology() -> None:
+def test_dispatch_queues_rlhf_methodology() -> None:
     fake_conn = _FakeConn()
     with (
         patch("tasks.training_tasks._connect", return_value=fake_conn),
         patch("tasks.training_tasks.celery.send_task") as mock_send,
-        patch("tasks.training_tasks._enqueue_job_status_notifications") as mock_notify,
     ):
-        _run(methodology="rlhf")
+        _run(
+            methodology="rlhf",
+            training_config={
+                **VALID_KWARGS["training_config"],
+                "reward_model_id": "OpenAssistant/reward-model-deberta-v3-large-v2",
+            },
+        )
 
     _, params = fake_conn.cursor_obj.calls[0]
-    assert params == {"status": "failed", "job_id": "job-1"}
-    mock_send.assert_not_called()
-    mock_notify.assert_called_once()
-    assert mock_notify.call_args.args[0] == "job-1"
-    assert mock_notify.call_args.args[1] == "failed"
-    assert "rlhf" in mock_notify.call_args.kwargs["error"]
+    assert params == {"status": "queued", "job_id": "job-1"}
+    mock_send.assert_called_once()
+    sent_kwargs = mock_send.call_args.kwargs["kwargs"]
+    assert sent_kwargs["methodology"] == "rlhf"
 
 
 def test_dispatch_marks_failed_when_no_dataset_attached() -> None:
@@ -128,7 +131,7 @@ def test_dispatch_defaults_dataset_format_to_unknown() -> None:
 def test_dispatch_closes_connection_even_when_send_task_not_reached() -> None:
     fake_conn = _FakeConn()
     with patch("tasks.training_tasks._connect", return_value=fake_conn):
-        _run(methodology="rlhf")
+        _run(dataset_storage_path=None)
 
     assert fake_conn.closed is True
 
@@ -151,7 +154,7 @@ def test_dispatch_publishes_status_change_on_failure() -> None:
         patch("tasks.training_tasks._connect", return_value=fake_conn),
         patch("tasks.training_tasks._publish_status_change") as mock_publish,
     ):
-        _run(methodology="rlhf")
+        _run(dataset_storage_path=None)
 
     mock_publish.assert_called_once_with("job-1", "failed")
 

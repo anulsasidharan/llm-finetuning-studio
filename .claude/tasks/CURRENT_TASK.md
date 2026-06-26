@@ -2,57 +2,48 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE4-005
-## TASK NAME: RLHF support — PPOTrainer + RewardTrainer (stretch goal)
+## TASK ID: PHASE4-006
+## TASK NAME: Production Docker Compose — docker-compose.prod.yml
 ## STATUS: ✅ DONE
 ## ASSIGNED PHASE: Phase 4, Week 13
-## BRANCH: feat/PHASE4-005-rlhf-support
+## BRANCH: feat/PHASE4-006-prod-docker-compose
 
 ## NEXT TASK
-PHASE4-006 (Production Docker Compose — docker-compose.prod.yml).
+PHASE4-007 (GitHub Actions CI/CD pipeline).
 
 ## SUMMARY (this session, 2026-06-26)
-Implemented end-to-end RLHF training in the GPU worker: preference-pair dataset
-(``prompt``/``chosen``/``rejected``, same shape as DPO/ORPO) → RewardTrainer
-fine-tune from ``training_config.reward_model_id`` → PPOTrainer policy optimisation
-on ``base_model_id`` scored by the trained reward model.
+Built a complete production Docker Compose stack and supporting files.
 
-**Training engine files created:**
-- `training_engine/trainers/rlhf_trainer.py` — `RLHFTrainer`: phase 1
-  `trl.RewardTrainer` (`AutoModelForSequenceClassification`, tokenized pairs) saves
-  to `{output_dir}/reward_model`; phase 2 `trl.PPOTrainer`
-  (`AutoModelForCausalLMWithValueHead` + ref model) manual generate→score→step loop,
-  saves policy to `{output_dir}/final`.
+**Files created:**
+- `docker-compose.prod.yml` — production compose; `production` build targets, no source
+  volume mounts, no host port bindings for postgres/redis/minio, nginx on 80/443,
+  `restart: always`, JSON logging with rotation, memory limits via `deploy.resources`,
+  GPU training engine behind `--profile gpu`.
+- `infra/docker/nginx/nginx.prod.conf` — nginx reverse proxy: `/api/` + `/health` +
+  `/docs` → backend:8000; `/ws/` → backend:8000 with WebSocket upgrade; `/_next/static/`
+  with 1-year immutable cache; everything else → frontend:3000. HTTPS server block
+  commented out with cert mount instructions.
+- `infra/docker/nginx/certs/.gitkeep` — placeholder dir for TLS certs with instructions.
+- `apps/backend/start.prod.sh` — waits for DB, runs `alembic upgrade head`, starts
+  uvicorn with 4 workers + `--proxy-headers`.
+- `.env.prod.example` — production env template with all CHANGE_ME markers; storage
+  Option A (MinIO) and Option B (AWS S3) both documented.
 
-**Training engine files modified:**
-- `training_engine/tasks.py` — `TRAINER_CLASSES["rlhf"] = RLHFTrainer`; removed
-  unsupported-methodology comment.
-- `training_engine/trainers/__init__.py` — export `RLHFTrainer`.
+**Files modified:**
+- `.gitignore` — added `.env.prod` so the real secrets file is never committed.
+- `Makefile` — added `COMPOSE_PROD` variable and 8 prod targets: `prod-build`, `prod`,
+  `prod-gpu`, `prod-stop`, `prod-migrate`, `prod-logs`, `prod-ps`, `prod-clean`.
+  Each target guards against missing `.env.prod` where applicable.
 
-**Backend files modified:**
-- `apps/backend/tasks/training_tasks.py` — removed `UNSUPPORTED_METHODOLOGIES`
-  block for `rlhf`; dispatch now queues RLHF jobs like other methodologies.
-
-**Trigger points:**
-1. Job created with `methodology=rlhf` + `reward_model_id` in `training_config` →
-   `dispatch_training_job` marks `queued` → `run_training_job` → `RLHFTrainer.train()`.
-2. Dispatch-time failure only when no dataset attached (unchanged).
-
-**Verification:**
-- `uv run pytest` — `test_rlhf_trainer.py` 5/5, `test_tasks.py` 10/10,
-  `test_training_tasks.py` 8/8.
-- `uv run ruff check` — clean on all touched files.
-- No live GPU RLHF run tested (stretch goal; unit tests mock TRL/transformers).
+**Validation:**
+- `docker compose -f docker-compose.prod.yml config` exits 0 (only obsolete `version`
+  warning, which was then removed from the file).
 
 ## GOTCHAS LOGGED
-- RLHF dataset must be preference pairs (`prompt`/`chosen`/`rejected`), not ChatML
-  messages — same as DPO/ORPO; `BaseTrainer.prepare_dataset_rows`/`to_chatml` not used.
-- `reward_model_id` is the RewardTrainer starting checkpoint (sequence-classification
-  head, `num_labels=1`); after phase 1 the fine-tuned RM at `{output_dir}/reward_model`
-  scores PPO generations.
-- PPO uses TRL 0.8.6's manual loop (`generate` → reward score → `step`), not
-  `Trainer.train()` — callbacks attach to RewardTrainer only.
-- `PPOConfig.steps` derived from `num_epochs` × dataset prompt count (not a separate
-  config key); `mini_batch_size`/`batch_size` adjusted for TRL divisibility constraint.
-- Backend no longer rejects `rlhf` at dispatch — failures surface from trainer validation
-  (missing `reward_model_id`, bad pair rows) inside the GPU worker.
+- `NEXT_PUBLIC_*` vars are baked into the Next.js bundle at build time — run
+  `make prod-build` after updating the domain in `.env.prod`, not just `make prod`.
+- GPU training engine is behind `profiles: [gpu]`; use `make prod-gpu` or
+  `docker compose -f docker-compose.prod.yml --profile gpu up -d` to activate it.
+- nginx `client_max_body_size 512m` matches `MAX_UPLOAD_SIZE_MB=500` in the env.
+- `deploy.resources.limits` requires Docker Compose plugin v2+ (not Docker Compose v1 / standalone).
+- `.env.prod` is gitignored; `.env.prod.example` is committed as the template.

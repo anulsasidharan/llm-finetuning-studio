@@ -1,11 +1,14 @@
-.PHONY: help dev stop build setup migrate migration seed sync-gpu-pricing test lint format check fix hooks-install clean logs ps
+.PHONY: help dev stop build setup migrate migration seed sync-gpu-pricing test lint format check fix hooks-install clean logs ps \
+        prod prod-gpu prod-build prod-stop prod-migrate prod-logs prod-ps prod-clean
 
-COMPOSE = docker compose
-BACKEND = apps/backend
-FRONTEND = apps/frontend
-TRAINING = training_engine
+COMPOSE      = docker compose
+COMPOSE_PROD = docker compose -f docker-compose.prod.yml
+BACKEND      = apps/backend
+FRONTEND     = apps/frontend
+TRAINING     = training_engine
 
 help:
+	@echo "── Development ─────────────────────────────────────────"
 	@echo "make setup          First-time project setup (includes hook install)"
 	@echo "make dev            Start all services (Docker)"
 	@echo "make stop           Stop all services"
@@ -23,6 +26,15 @@ help:
 	@echo "make logs           Tail container logs"
 	@echo "make ps             Show container status"
 	@echo "make clean          Remove all containers + volumes"
+	@echo "── Production ──────────────────────────────────────────"
+	@echo "make prod-build     Build production images (requires .env.prod)"
+	@echo "make prod           Start production stack (detached)"
+	@echo "make prod-gpu       Start production stack + GPU training engine"
+	@echo "make prod-stop      Stop production stack"
+	@echo "make prod-migrate   Run DB migrations against prod database"
+	@echo "make prod-logs      Tail production logs"
+	@echo "make prod-ps        Show production container status"
+	@echo "make prod-clean     Remove prod containers + volumes (DESTRUCTIVE)"
 
 setup:
 	cp -n .env.example .env || true
@@ -127,3 +139,35 @@ clean:
 	rm -rf $(FRONTEND)/.next $(FRONTEND)/node_modules
 	rm -rf $(BACKEND)/.venv $(TRAINING)/.venv
 	@echo "✅ Clean complete."
+
+# ── Production targets ──────────────────────────────────────────────────────
+
+prod-build:
+	@test -f .env.prod || (echo "❌ .env.prod not found — copy .env.prod.example and fill in values" && exit 1)
+	$(COMPOSE_PROD) build --no-cache
+
+prod:
+	@test -f .env.prod || (echo "❌ .env.prod not found — copy .env.prod.example and fill in values" && exit 1)
+	$(COMPOSE_PROD) up -d
+
+prod-gpu:
+	@test -f .env.prod || (echo "❌ .env.prod not found — copy .env.prod.example and fill in values" && exit 1)
+	$(COMPOSE_PROD) --profile gpu up -d
+
+prod-stop:
+	$(COMPOSE_PROD) down
+
+prod-migrate:
+	$(COMPOSE_PROD) run --rm backend alembic upgrade head
+
+prod-logs:
+	$(COMPOSE_PROD) logs -f
+
+prod-ps:
+	$(COMPOSE_PROD) ps
+
+prod-clean:
+	@echo "⚠️  This will destroy all production volumes. Press Ctrl+C to cancel."
+	@sleep 5
+	$(COMPOSE_PROD) down -v --remove-orphans
+	@echo "✅ Production clean complete."

@@ -24,8 +24,6 @@ from core.config import settings
 
 logger = structlog.get_logger()
 
-UNSUPPORTED_METHODOLOGIES = frozenset({"rlhf"})
-
 DEFAULT_PUBSUB_REDIS_URL = "redis://localhost:6380/3"
 
 
@@ -108,10 +106,6 @@ def dispatch_training_job(
     dataset_storage_path: str | None,
     dataset_format: str | None,
 ) -> None:
-    if methodology in UNSUPPORTED_METHODOLOGIES:
-        _mark_job_failed(job_id, f"No trainer implemented for methodology={methodology!r} yet.")
-        return
-
     if dataset_storage_path is None:
         _mark_job_failed(job_id, "Job has no dataset attached.")
         return

@@ -19,17 +19,46 @@ def _run(**overrides):
     return tasks.run_training_job.run(**kwargs)
 
 
-def test_run_training_job_rejects_rlhf_methodology() -> None:
-    with (
-        patch("tasks.mark_job_failed") as mock_failed,
-        patch("tasks.download_dataset_file") as mock_download,
-    ):
-        result = _run(methodology="rlhf")
+def test_run_training_job_dispatches_rlhf_trainer() -> None:
+    fake_trainer_instance = MagicMock()
+    fake_trainer_instance.train.return_value = {
+        "status": "completed",
+        "metrics": {"train_loss": 0.3, "ppo_mean_reward": 0.8},
+    }
+    fake_trainer_cls = MagicMock(return_value=fake_trainer_instance)
+    dataset_bytes = json.dumps(
+        [
+            {
+                "prompt": "What is 2+2?",
+                "chosen": "4",
+                "rejected": "5",
+            }
+        ]
+    ).encode()
 
-    assert result["status"] == "failed"
-    assert "rlhf" in result["error"]
-    mock_failed.assert_called_once()
-    mock_download.assert_not_called()
+    with (
+        patch.dict(tasks.TRAINER_CLASSES, {"rlhf": fake_trainer_cls}),
+        patch("tasks.download_dataset_file", return_value=dataset_bytes),
+        patch("tasks.mark_job_running") as mock_running,
+        patch("tasks.mark_job_completed") as mock_completed,
+        patch("tasks.GPUMonitor"),
+        patch("tasks.MetricsCallback"),
+        patch("tasks.MetricsPersistCallback"),
+    ):
+        result = _run(
+            methodology="rlhf",
+            training_config={
+                **VALID_KWARGS["training_config"],
+                "reward_model_id": "OpenAssistant/reward-model-deberta-v3-large-v2",
+            },
+        )
+
+    mock_running.assert_called_once_with("job-1")
+    fake_trainer_cls.assert_called_once()
+    assert fake_trainer_cls.call_args.kwargs["methodology"] == "rlhf"
+    fake_trainer_instance.train.assert_called_once()
+    mock_completed.assert_called_once_with("job-1", train_loss=0.3, eval_loss=None)
+    assert result["status"] == "completed"
 
 
 def test_run_training_job_marks_failed_on_dataset_load_error() -> None:

@@ -8,9 +8,7 @@ Downloads the dataset itself from MinIO (utils/storage.py), picks the right trai
 the job's methodology, wires utils.callbacks.MetricsCallback (Redis pub/sub, PHASE2-007)
 + utils.gpu_monitor.GPUMonitor (PHASE2-008) + utils.job_status.MetricsPersistCallback
 (Postgres snapshots, PHASE2-009) into it, runs train(), and persists the final
-status/metrics. ``rlhf`` has no trainer yet (PHASE4-005 stretch goal) — simply absent
-from TRAINER_CLASSES, so it falls into the same "no trainer" failure path as any other
-unsupported methodology rather than crashing.
+status/metrics. ``rlhf`` is handled by ``trainers.rlhf_trainer.RLHFTrainer`` (PHASE4-005).
 """
 
 from __future__ import annotations
@@ -28,6 +26,7 @@ from trainers.dpo_trainer import DPOTrainer
 from trainers.lora_trainer import LoRATrainer
 from trainers.orpo_trainer import ORPOTrainer
 from trainers.qlora_trainer import QLoRATrainer
+from trainers.rlhf_trainer import RLHFTrainer
 from trainers.sft_trainer import SFTTrainer
 from utils.callbacks import MetricsCallback
 from utils.eval_status import mark_eval_completed, mark_eval_failed, mark_eval_running
@@ -49,6 +48,7 @@ TRAINER_CLASSES: dict[str, type[BaseTrainer]] = {
     "qlora": QLoRATrainer,
     "dpo": DPOTrainer,
     "orpo": ORPOTrainer,
+    "rlhf": RLHFTrainer,
 }
 
 

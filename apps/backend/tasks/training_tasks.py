@@ -70,27 +70,32 @@ def _mark_job_queued(job_id: str) -> None:
     _publish_status_change(job_id, "queued")
 
 
-def _enqueue_job_status_email(job_id: str, status: str, error: str | None = None) -> None:
-    try:
-        celery.send_task(
-            "tasks.notification_tasks.send_job_status_email",
-            kwargs={"job_id": job_id, "status": status, "error": error},
-            queue="default",
-        )
-    except Exception as exc:
-        logger.warning(
-            "job_notification_enqueue_failed",
-            job_id=job_id,
-            status=status,
-            error=str(exc),
-        )
+def _enqueue_job_status_notifications(job_id: str, status: str, error: str | None = None) -> None:
+    for task_name in (
+        "tasks.notification_tasks.send_job_status_email",
+        "tasks.notification_tasks.send_job_status_slack",
+    ):
+        try:
+            celery.send_task(
+                task_name,
+                kwargs={"job_id": job_id, "status": status, "error": error},
+                queue="default",
+            )
+        except Exception as exc:
+            logger.warning(
+                "job_notification_enqueue_failed",
+                task=task_name,
+                job_id=job_id,
+                status=status,
+                error=str(exc),
+            )
 
 
 def _mark_job_failed(job_id: str, error: str) -> None:
     logger.error("training_dispatch_failed", job_id=job_id, error=error)
     _update_job_status(job_id, "failed")
     _publish_status_change(job_id, "failed")
-    _enqueue_job_status_email(job_id, "failed", error=error)
+    _enqueue_job_status_notifications(job_id, "failed", error=error)
 
 
 @celery.task(name="tasks.training_tasks.dispatch_training_job")

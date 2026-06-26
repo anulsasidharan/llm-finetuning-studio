@@ -218,7 +218,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build backend (development)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: apps/backend
           target: development
@@ -227,7 +227,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build frontend (development)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: apps/frontend
           target: development
@@ -236,7 +236,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build training engine (development)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: training_engine
           target: development

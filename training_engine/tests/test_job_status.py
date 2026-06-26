@@ -110,18 +110,28 @@ def test_mark_job_running_publishes_status_change() -> None:
 
 def test_mark_job_completed_publishes_status_change() -> None:
     fake_conn, patcher = _patched_connect()
-    with patcher, patch("utils.job_status.publish_status_change") as mock_publish:
+    with (
+        patcher,
+        patch("utils.job_status.publish_status_change") as mock_publish,
+        patch("utils.job_status.enqueue_job_status_email") as mock_notify,
+    ):
         mark_job_completed("job-1", train_loss=0.5, eval_loss=0.4)
 
     mock_publish.assert_called_once_with(job_id="job-1", status="completed")
+    mock_notify.assert_called_once_with(job_id="job-1", status="completed")
 
 
 def test_mark_job_failed_publishes_status_change() -> None:
     fake_conn, patcher = _patched_connect()
-    with patcher, patch("utils.job_status.publish_status_change") as mock_publish:
+    with (
+        patcher,
+        patch("utils.job_status.publish_status_change") as mock_publish,
+        patch("utils.job_status.enqueue_job_status_email") as mock_notify,
+    ):
         mark_job_failed("job-1", "boom")
 
     mock_publish.assert_called_once_with(job_id="job-1", status="failed")
+    mock_notify.assert_called_once_with(job_id="job-1", status="failed", error="boom")
 
 
 def test_mark_job_running_still_publishes_when_db_write_fails() -> None:

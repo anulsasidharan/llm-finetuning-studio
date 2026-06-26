@@ -56,12 +56,17 @@ def test_dispatch_rejects_rlhf_methodology() -> None:
     with (
         patch("tasks.training_tasks._connect", return_value=fake_conn),
         patch("tasks.training_tasks.celery.send_task") as mock_send,
+        patch("tasks.training_tasks._enqueue_job_status_email") as mock_notify,
     ):
         _run(methodology="rlhf")
 
     _, params = fake_conn.cursor_obj.calls[0]
     assert params == {"status": "failed", "job_id": "job-1"}
     mock_send.assert_not_called()
+    mock_notify.assert_called_once()
+    assert mock_notify.call_args.args[0] == "job-1"
+    assert mock_notify.call_args.args[1] == "failed"
+    assert "rlhf" in mock_notify.call_args.kwargs["error"]
 
 
 def test_dispatch_marks_failed_when_no_dataset_attached() -> None:
@@ -69,12 +74,18 @@ def test_dispatch_marks_failed_when_no_dataset_attached() -> None:
     with (
         patch("tasks.training_tasks._connect", return_value=fake_conn),
         patch("tasks.training_tasks.celery.send_task") as mock_send,
+        patch("tasks.training_tasks._enqueue_job_status_email") as mock_notify,
     ):
         _run(dataset_storage_path=None)
 
     _, params = fake_conn.cursor_obj.calls[0]
     assert params == {"status": "failed", "job_id": "job-1"}
     mock_send.assert_not_called()
+    mock_notify.assert_called_once_with(
+        "job-1",
+        "failed",
+        error="Job has no dataset attached.",
+    )
 
 
 def test_dispatch_happy_path_marks_queued_and_sends_task() -> None:

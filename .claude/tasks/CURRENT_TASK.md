@@ -2,51 +2,60 @@
 # Claude Code reads this at the start of every session.
 # Replace contents when moving to a new task.
 
-## TASK ID: PHASE4-002
-## TASK NAME: Frontend: Learning Center — conceptual explainers
+## TASK ID: PHASE4-003
+## TASK NAME: Email notifications — job complete/failed
 ## STATUS: ✅ DONE
 ## ASSIGNED PHASE: Phase 4, Week 13
-## BRANCH: feat/PHASE4-002-learning-center
+## BRANCH: feat/PHASE4-003-email-notifications
 
 ## NEXT TASK
-PHASE4-003 (Email notifications — job complete/failed).
+PHASE4-004 (Slack notifications — webhook integration).
 
 ## SUMMARY (this session, 2026-06-26)
-Built the Learning Center at `/learning` — permanent browsable reference for fine-tuning
-concepts, complementary to the one-time Onboarding wizard.
+Implemented optional SMTP email notifications when a fine-tune job reaches a terminal
+status (`completed` or `failed`).
 
-**Frontend files created:**
-- `apps/frontend/lib/learning-center-data.ts` — single content source: 17 topics across 4
-  categories (Foundations, Datasets, Methodologies, Key concepts). Methodology articles are
-  generated from shared `METHODOLOGY_INFO` plus local `METHODOLOGY_EXPLAINERS` enrichment
-  (analogy, when-to-use bullets, watch-out callout) — no duplicate methods table.
-- `apps/frontend/app/(dashboard)/learning/page.tsx` — server wrapper with `<Suspense>` for
-  `useSearchParams` (Next.js 16 static prerender rule).
-- `apps/frontend/app/(dashboard)/learning/LearningCenterView.tsx` — `"use client"` UI: left
-  category/topic nav, right article panel with sections (heading/body/bullets/tip|info|warning
-  callouts), methodology color badges, and "Try it in the studio" deep-links. Active topic via
-  `?topic=<id>` (`router.replace` on nav click; defaults to `what-is-fine-tuning`).
+**Backend files created:**
+- `apps/backend/services/email_service.py` — stdlib `smtplib` + `EmailMessage` (STARTTLS);
+  no-ops with info log when `SMTP_USER`/`SMTP_PASSWORD` unset.
+- `apps/backend/services/notification_service.py` — fetches job + user email via sync
+  psycopg2, composes plain-text + HTML body with job metadata and
+  `FRONTEND_URL/training/{job_id}` deep link.
+- `apps/backend/tasks/notification_tasks.py` — Celery task
+  `send_job_status_email` on the `default` queue.
 
-**Frontend file modified:**
-- `apps/frontend/components/layout/Sidebar.tsx` — added
-  `{ label: "Learning Center", href: "/learning", icon: BookOpen }` after Onboarding.
+**Backend files modified:**
+- `apps/backend/core/config.py` — added `FRONTEND_URL` (default `http://localhost:3000`).
+- `apps/backend/core/celery_app.py` — route `tasks.notification_tasks.*` → `default`;
+  explicit imports of all `tasks.*` modules so the worker registers them.
+- `apps/backend/tasks/training_tasks.py` — `_enqueue_job_status_email` on dispatch-time
+  failures (rlhf unsupported, no dataset).
 
-**Topic inventory (17):**
-- Foundations: what-is-fine-tuning, ft-vs-prompt-vs-rag, training-pipeline
-- Datasets: dataset-formats, dataset-quality, preference-pairs
-- Methodologies: sft, lora, qlora, dpo, orpo, rlhf (from `METHODOLOGY_INFO`)
-- Concepts: lora-mechanics, vram-budgeting, loss-and-overfitting, alignment-overview
+**Training engine files created/modified:**
+- `training_engine/utils/notify.py` — `enqueue_job_status_email()` via
+  `celery.send_task` by name (cross-process, no apps/backend import).
+- `training_engine/utils/job_status.py` — calls `enqueue_job_status_email` from
+  `mark_job_completed` and `mark_job_failed`.
+
+**Config:**
+- `.env.example` — added `FRONTEND_URL=http://localhost:3000` under Notifications.
+
+**Trigger points:**
+1. Training completes or fails in GPU worker → `job_status.mark_job_*` → notify enqueue.
+2. Backend dispatch rejects job (rlhf / no dataset) → `training_tasks._mark_job_failed`
+   → notify enqueue.
 
 **Verification:**
-- `npm run build` — passes (TypeScript clean, `/learning` prerenders as static `○`)
-- No browser-automation tool available — topic nav switching not click-tested; SSR/build
-  verification only (same standing limitation as prior frontend tasks)
+- `uv run pytest` — backend notification tests 25/25, training_engine notify+job_status 20/20.
+- `uv run ruff check` — clean on all touched files.
+- No live SMTP send tested (credentials unset in dev — expected no-op path).
 
 ## GOTCHAS LOGGED
-- Learning Center topic ids for methodologies match `Methodology` literals (`sft`, `qlora`,
-  etc.) — deep links like `/learning?topic=qlora` align with `/config?methodology=qlora`.
-- `METHODOLOGY_EXPLAINERS` in `learning-center-data.ts` is display-only enrichment layered on
-  `METHODOLOGY_INFO` — same pattern as onboarding's local title/color/VRAM maps; do not add a
-  third parallel methods table elsewhere.
-- Onboarding (`/onboarding`) remains the guided first-run walkthrough; Learning Center
-  (`/learning`) is the always-available reference — intentionally separate routes.
+- Email fires only on `completed`/`failed`, not `queued`/`running`/`pending`.
+- SMTP is optional; dev works without credentials (logs `email_skipped_smtp_not_configured`).
+- training_engine cannot import apps/backend — uses `utils/notify.py` + `send_task` by name,
+  same cross-process pattern as `dispatch_training_job` / `run_training_job`.
+- `core/celery_app.py` now eagerly imports all task modules — fixes latent risk that the
+  worker wouldn't register tasks unless something else imported them first.
+- PHASE4-004 Slack should add a parallel Celery task + hook from the same terminal-status
+  points (or a single dispatcher task that fans out to email + Slack).

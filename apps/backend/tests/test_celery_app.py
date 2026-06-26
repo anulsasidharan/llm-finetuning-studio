@@ -23,4 +23,5 @@ def test_celery_task_routes_map_training_and_export_queues() -> None:
     task_routes = celery.conf.task_routes
     assert task_routes["tasks.training_tasks.*"] == {"queue": "training"}
     assert task_routes["tasks.export_tasks.*"] == {"queue": "export"}
+    assert task_routes["tasks.notification_tasks.*"] == {"queue": "default"}
     assert celery.conf.task_default_queue == "default"
